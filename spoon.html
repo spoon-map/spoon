@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spoon — Skip the algorithm. Trust a Spoon.</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',sans-serif; background:#fff; color:#111; height:100vh; overflow:hidden; }
+
+    /* ── HEADER ── */
+    .header {
+      position:fixed; top:0; left:0; right:0; z-index:1000;
+      background:#fff; border-bottom:1.5px solid #111;
+      padding:0 20px; height:54px;
+      display:flex; align-items:center; gap:16px;
+    }
+    .logo-wrap-inner { display:flex; align-items:center; gap:7px; }
+    .logo { font-family:'Caveat',cursive; font-size:28px; font-weight:700; letter-spacing:-0.5px; white-space:nowrap; }
+    .logo-icon { display:flex; align-items:center; flex-shrink:0; }
+    .tagline { font-size:11px; color:#aaa; white-space:nowrap; display:none; }
+    @media(min-width:900px){ .tagline{ display:block; } }
+
+    /* Search bar */
+    .search-wrap {
+      flex:1; max-width:420px; position:relative;
+    }
+    .search-input {
+      width:100%; border:1.5px solid #ddd; padding:8px 14px 8px 36px;
+      font-family:'Inter',sans-serif; font-size:13px; outline:none;
+      background:#fafafa; transition:border-color 0.15s;
+    }
+    .search-input:focus { border-color:#111; background:#fff; }
+    .search-icon {
+      position:absolute; left:11px; top:50%; transform:translateY(-50%);
+      font-size:14px; color:#aaa; pointer-events:none;
+    }
+    .search-dropdown {
+      position:absolute; top:calc(100% + 4px); left:0; right:0;
+      background:#fff; border:1.5px solid #111;
+      box-shadow:3px 3px 0 #111; z-index:2000;
+      display:none; max-height:280px; overflow-y:auto;
+    }
+    .search-dropdown.open { display:block; }
+    .search-result {
+      padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f0f0;
+      display:flex; flex-direction:column; gap:2px;
+    }
+    .search-result:last-child { border-bottom:none; }
+    .search-result:hover { background:#f7f7f7; }
+    .search-result-name { font-family:'Caveat',cursive; font-size:17px; font-weight:600; }
+    .search-result-addr { font-size:11px; color:#aaa; }
+    .search-result-tag { font-size:11px; color:#888; }
+    .search-in-spoon { color:#111; }
+    .search-new { color:#bbb; font-style:italic; }
+    .search-loading { padding:12px 14px; font-size:13px; color:#aaa; font-family:'Caveat',cursive; font-size:16px; }
+
+    /* User pill */
+    .user-pill {
+      display:flex; align-items:center; gap:8px;
+      border:1.5px solid #111; padding:4px 12px 4px 7px;
+      white-space:nowrap; flex-shrink:0;
+    }
+    .header-spoon-wrap { width:14px; }
+    .user-info-name { font-family:'Caveat',cursive; font-size:14px; line-height:1.1; }
+    .user-info-loc { font-size:10px; color:#888; }
+
+    /* ── LAYOUT ── */
+    #map {
+      position:fixed; top:54px; left:260px; right:0; bottom:0; z-index:1;
+      transition:left 0.3s ease;
+    }
+
+    /* ── LEFT PANEL (Rankings) ── */
+    .left-panel {
+      position:fixed; top:54px; left:0;
+      width:260px; bottom:0;
+      background:#fff; border-right:1.5px solid #111;
+      z-index:400; display:flex; flex-direction:column;
+      overflow:hidden;
+    }
+    .left-panel-header {
+      padding:16px 16px 12px;
+      border-bottom:1px solid #eee;
+    }
+    .left-panel-title {
+      font-family:'Caveat',cursive; font-size:22px; font-weight:700;
+      margin-bottom:10px;
+    }
+    .rank-tabs { display:flex; gap:6px; }
+    .rank-tab {
+      flex:1; padding:6px 0; border:1.5px solid #ddd;
+      font-family:'Caveat',cursive; font-size:15px; cursor:pointer;
+      background:#fff; color:#888; text-align:center; transition:all 0.1s;
+    }
+    .rank-tab.active { background:#111; color:#fff; border-color:#111; }
+    .rank-tab:hover:not(.active) { border-color:#aaa; color:#111; }
+
+    .rank-list { flex:1; overflow-y:auto; padding:8px 0; }
+    .rank-item {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 16px; cursor:pointer;
+      border-bottom:1px solid #f5f5f5; transition:background 0.1s;
+    }
+    .rank-item:hover { background:#fafafa; }
+    .rank-item.active-panel { background:#f5f5f5; }
+    .rank-num {
+      font-family:'Caveat',cursive; font-size:20px; font-weight:700;
+      color:#ddd; width:22px; flex-shrink:0; text-align:center;
+    }
+    .rank-num.top { color:#111; }
+    .rank-info { flex:1; min-width:0; }
+    .rank-name {
+      font-family:'Caveat',cursive; font-size:16px; font-weight:600;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .rank-meta { display:flex; align-items:center; gap:6px; margin-top:1px; }
+    .rank-visits { font-size:11px; color:#aaa; }
+    .rank-spoons-mini { display:flex; gap:1px; }
+
+    /* ── MAP MARKERS ── */
+    .marker-wrap { display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
+    .marker-label {
+      background:#fff; border:1.5px solid #111; border-radius:20px;
+      padding:4px 10px; font-family:'Caveat',cursive;
+      font-size:13px; font-weight:600; white-space:nowrap;
+      box-shadow:2px 2px 0 #111; cursor:pointer; transition:transform 0.12s;
+    }
+    .marker-label:hover { transform:scale(1.05); }
+    .marker-label.active { background:#111; color:#fff; }
+    .marker-spoons-row { display:flex; gap:1px; padding-left:6px; align-items:flex-end; }
+    .marker-avatars { display:flex; gap:3px; padding-left:6px; margin-top:1px; }
+    .avatar-dot {
+      width:18px; height:18px; border-radius:50%; border:1.5px solid #fff;
+      display:flex; align-items:center; justify-content:center;
+      font-size:8px; font-weight:700; color:#fff; font-family:'Inter',sans-serif;
+      box-shadow:1px 1px 0 #ccc;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .side-panel {
+      position:fixed; top:54px; right:-390px;
+      width:370px; bottom:0; background:#fff;
+      border-left:1.5px solid #111; z-index:500;
+      overflow-y:auto; transition:right 0.28s ease;
+    }
+    .side-panel.open { right:0; }
+    .panel-inner { padding:22px 20px; }
+    .panel-close {
+      position:absolute; top:14px; right:14px;
+      background:none; border:none; font-size:17px; cursor:pointer; color:#aaa;
+    }
+    .panel-close:hover { color:#111; }
+    .panel-category { font-size:10px; text-transform:uppercase; letter-spacing:1.8px; color:#aaa; margin-bottom:4px; }
+    .panel-name { font-family:'Caveat',cursive; font-size:32px; font-weight:700; line-height:1.05; margin-bottom:5px; }
+    .panel-address { font-size:12px; color:#888; margin-bottom:16px; }
+    .panel-rating-row { display:flex; align-items:center; gap:10px; padding-bottom:16px; border-bottom:1px solid #eee; margin-bottom:16px; }
+    .rating-meta { font-size:12px; color:#aaa; }
+    .panel-photo { width:100%; height:160px; background:#f7f7f7; border:1px solid #eee; display:flex; align-items:center; justify-content:center; font-family:'Caveat',cursive; font-size:15px; color:#ccc; margin-bottom:16px; }
+    .whos-here { display:flex; align-items:center; gap:8px; margin-bottom:12px; font-size:12px; color:#888; }
+    .whos-here-avatars { display:flex; gap:4px; }
+    .whos-here .avatar-dot { width:22px; height:22px; font-size:10px; border-color:#eee; }
+    .spoon-in-btn { width:100%; background:#111; color:#fff; border:none; padding:13px; font-family:'Caveat',cursive; font-size:19px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px; }
+    .spoon-in-btn:hover { background:#333; }
+    .spoon-in-btn.checked-in { background:#fff; color:#111; border:1.5px solid #111; }
+    .spoon-in-btn.checked-in:hover { background:#f5f5f5; }
+    .spoon-in-btn.elsewhere { background:#fff; color:#ccc; border:1.5px solid #eee; cursor:default; }
+    .elsewhere-note { font-size:12px; color:#aaa; text-align:center; margin-bottom:12px; }
+    .elsewhere-note span { color:#111; text-decoration:underline; cursor:pointer; }
+    .chat-btn { width:100%; background:#fff; border:1.5px solid #111; padding:12px 16px; font-family:'Caveat',cursive; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+    .chat-btn:hover { background:#f5f5f5; }
+    .live-badge { display:inline-flex; align-items:center; gap:5px; background:#fff5f5; border:1px solid #ffc0c0; border-radius:20px; padding:3px 9px; font-size:11px; font-family:'Inter',sans-serif; font-weight:600; color:#d00; letter-spacing:0.5px; }
+    .live-dot { width:6px; height:6px; background:#d00; border-radius:50%; animation:blink 1.4s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+    .section-label { font-family:'Caveat',cursive; font-size:15px; color:#bbb; margin-bottom:8px; }
+    .review-item { padding:11px 0; border-bottom:1px solid #f2f2f2; }
+    .review-item:last-child { border-bottom:none; }
+    .review-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px; }
+    .review-author { font-family:'Caveat',cursive; font-size:16px; font-weight:600; }
+    .review-tags { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:5px; }
+    .review-tag { font-size:11px; background:#f5f5f5; padding:2px 7px; color:#666; }
+    .review-text { font-size:13px; color:#444; line-height:1.55; }
+    .review-must { font-size:12px; color:#888; margin-top:3px; }
+    .review-must strong { color:#111; }
+    .review-date { font-size:11px; color:#ccc; margin-top:3px; }
+
+    /* New place panel */
+    .new-place-banner {
+      background:#fafafa; border:1px solid #eee;
+      padding:14px; margin-bottom:16px;
+      font-size:13px; color:#666; line-height:1.6;
+    }
+    .new-place-banner strong { color:#111; font-family:'Caveat',cursive; font-size:16px; display:block; margin-bottom:4px; }
+
+    /* Rate form inline */
+    .rate-form { display:flex; flex-direction:column; gap:14px; }
+    .form-label { font-size:10px; font-weight:500; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:6px; }
+    .form-input, .form-textarea { width:100%; border:1px solid #ddd; padding:9px 12px; font-family:'Inter',sans-serif; font-size:13px; outline:none; }
+    .form-input:focus, .form-textarea:focus { border-color:#111; }
+    .form-textarea { resize:vertical; min-height:70px; }
+    .spoon-picker-row { display:flex; gap:5px; align-items:center; }
+    .spoon-pick-btn { cursor:pointer; background:none; border:none; padding:2px; opacity:0.2; transition:opacity 0.1s; }
+    .spoon-pick-btn.lit { opacity:1; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; }
+    .chip { padding:5px 11px; border:1.5px solid #ddd; font-family:'Caveat',cursive; font-size:14px; cursor:pointer; background:#fff; color:#888; }
+    .chip:hover { border-color:#aaa; color:#111; }
+    .chip.selected { background:#111; color:#fff; border-color:#111; }
+    .spoon-rating-desc { font-family:'Caveat',cursive; font-size:14px; color:#888; margin-left:6px; }
+    .btn-submit { background:#111; color:#fff; border:none; padding:13px; font-family:'Caveat',cursive; font-size:18px; cursor:pointer; width:100%; }
+    .btn-submit:hover { background:#333; }
+    .form-divider { border:none; border-top:1px solid #eee; }
+
+    /* ── MODALS ── */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:2000; display:none; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+
+    /* ── ONBOARDING ── */
+    .onboard-modal { background:#fff; border:1.5px solid #111; box-shadow:6px 6px 0 #111; width:400px; max-width:95vw; padding:34px 30px; }
+    .onboard-logo { font-family:'Caveat',cursive; font-size:46px; font-weight:700; line-height:1; margin-bottom:4px; }
+    .onboard-tagline { font-size:12px; color:#888; margin-bottom:28px; }
+    .onboard-label { font-size:10px; font-weight:500; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:7px; }
+    .onboard-input { width:100%; border:1px solid #ddd; padding:10px 13px; font-family:'Inter',sans-serif; font-size:14px; outline:none; margin-bottom:20px; }
+    .onboard-input:focus { border-color:#111; }
+    .color-grid { display:flex; gap:9px; flex-wrap:wrap; margin-bottom:22px; }
+    .color-swatch { width:34px; height:34px; border-radius:50%; cursor:pointer; border:2.5px solid transparent; transition:transform 0.1s, border-color 0.1s; }
+    .color-swatch:hover { transform:scale(1.1); }
+    .color-swatch.selected { border-color:#111; transform:scale(1.12); }
+    .spoon-preview-row { display:flex; align-items:center; gap:16px; padding:16px; border:1px solid #eee; margin-bottom:22px; }
+    .preview-spoon-wrap { width:26px; }
+    .preview-text { font-family:'Caveat',cursive; font-size:15px; color:#888; }
+    .preview-name { font-family:'Caveat',cursive; font-size:19px; font-weight:600; }
+    .btn-start { width:100%; background:#111; color:#fff; border:none; padding:13px; font-family:'Caveat',cursive; font-size:19px; cursor:pointer; }
+    .btn-start:hover { background:#333; }
+
+    /* ── CHAT MODAL ── */
+    .chat-modal { background:#fff; border:1.5px solid #111; box-shadow:5px 5px 0 #111; width:420px; max-width:95vw; height:560px; display:flex; flex-direction:column; }
+    .chat-modal-header { padding:14px 18px; border-bottom:1.5px solid #111; display:flex; align-items:flex-start; justify-content:space-between; }
+    .chat-place-name { font-family:'Caveat',cursive; font-size:23px; font-weight:700; line-height:1; }
+    .chat-meta { font-size:11px; color:#aaa; margin-top:3px; }
+    .chat-header-right { display:flex; align-items:center; gap:10px; }
+    .chat-messages { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:12px; }
+    .msg-system { text-align:center; font-family:'Caveat',cursive; font-size:13px; color:#bbb; padding:3px 0; }
+    .msg-wrap { display:flex; flex-direction:column; gap:3px; }
+    .msg-wrap.own { align-items:flex-end; }
+    .msg-author-row { display:flex; align-items:center; gap:6px; }
+    .msg-author-dot { width:15px; height:15px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:700; color:#fff; }
+    .msg-author { font-family:'Caveat',cursive; font-size:13px; color:#bbb; }
+    .msg-bubble { background:#f4f4f4; padding:8px 12px; font-size:13px; line-height:1.5; max-width:82%; }
+    .msg-bubble.own { background:#111; color:#fff; }
+    .msg-time { font-size:10px; color:#ccc; }
+    .chat-input-row { padding:11px 13px; border-top:1.5px solid #111; display:flex; gap:7px; }
+    .chat-input { flex:1; border:1px solid #ddd; padding:9px 12px; font-family:'Inter',sans-serif; font-size:13px; outline:none; }
+    .chat-input:focus { border-color:#111; }
+    .chat-send { background:#111; color:#fff; border:none; padding:9px 16px; font-family:'Caveat',cursive; font-size:16px; cursor:pointer; }
+    .chat-send:hover { background:#333; }
+    .chat-locked { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:20px; text-align:center; }
+    .chat-locked p { font-family:'Caveat',cursive; font-size:17px; color:#aaa; }
+    .chat-locked small { font-size:12px; color:#bbb; line-height:1.6; }
+
+    /* Toast */
+    .toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:#111; color:#fff; padding:12px 22px; font-family:'Caveat',cursive; font-size:17px; z-index:9999; box-shadow:3px 3px 0 #555; animation:fadeUp 0.2s ease; }
+    @keyframes fadeUp { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+
+    .mapboxgl-ctrl-attrib { font-size:9px !important; }
+    .mapboxgl-ctrl-logo { display:none !important; }
+  </style>
+</head>
+<body>
+
+<!-- SVG DEFS -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="hd" x="-15%" y="-15%" width="130%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="3" seed="5" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.4" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<!-- ── HEADER ── -->
+<header class="header">
+  <div class="logo-wrap-inner">
+    <div class="logo">Spoon</div>
+    <div class="logo-icon">
+      <svg width="10" height="28" viewBox="0 0 28 80" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+        <path d="M14 3 C22 2.5,26.5 9,26.5 16.5 C26.5 26,21 31.5,16 33 L16.8 70.5 C17.1 74.5,15.8 78,14 78 C12.2 78,10.9 74.5,11.2 70.5 L12 33 C7 31.5,1.5 26,1.5 16.5 C1.5 9,6 2.5,14 3 Z"
+          fill="white" stroke="#111" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </div>
+  <div class="tagline">Skip the algorithm. Trust a Spoon.</div>
+
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="searchInput" placeholder="Search a restaurant or café in Brisbane…" autocomplete="off"
+      oninput="onSearchInput(this.value)" onblur="hideDropdownDelayed()" onkeydown="searchKeydown(event)"/>
+    <div class="search-dropdown" id="searchDropdown"></div>
+  </div>
+
+  <div class="user-pill" id="userPill" style="display:none">
+    <div class="header-spoon-wrap" id="headerSpoon"></div>
+    <div>
+      <div class="user-info-name" id="headerName"></div>
+      <div class="user-info-loc" id="headerLoc">not checked in</div>
+    </div>
+  </div>
+</header>
+
+<!-- ── LEFT PANEL (Rankings) ── -->
+<div class="left-panel">
+  <div class="left-panel-header">
+    <div class="left-panel-title" style="display:flex;align-items:center;gap:6px;">
+      <svg width="9" height="26" viewBox="0 0 28 80" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+        <path d="M14 3 C22 2.5,26.5 9,26.5 16.5 C26.5 26,21 31.5,16 33 L16.8 70.5 C17.1 74.5,15.8 78,14 78 C12.2 78,10.9 74.5,11.2 70.5 L12 33 C7 31.5,1.5 26,1.5 16.5 C1.5 9,6 2.5,14 3 Z"
+          fill="white" stroke="#111" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Top Spoons
+    </div>
+    <div class="rank-tabs">
+      <button class="rank-tab active" onclick="setRankTab('daily',this)">Today</button>
+      <button class="rank-tab" onclick="setRankTab('weekly',this)">Week</button>
+      <button class="rank-tab" onclick="setRankTab('monthly',this)">Month</button>
+    </div>
+  </div>
+  <div class="rank-list" id="rankList"></div>
+</div>
+
+<!-- ── MAP ── -->
+<div id="map"></div>
+
+<!-- ── RIGHT PANEL ── -->
+<div class="side-panel" id="sidePanel">
+  <button class="panel-close" onclick="closePanel()">✕</button>
+  <div class="panel-inner" id="panelContent"></div>
+</div>
+
+<!-- ── CHAT MODAL ── -->
+<div class="modal-overlay" id="chatOverlay" onclick="chatBgClick(event)">
+  <div class="chat-modal">
+    <div class="chat-modal-header">
+      <div>
+        <div class="chat-place-name" id="chatPlaceName"></div>
+        <div class="chat-meta" id="chatMeta"></div>
+      </div>
+      <div class="chat-header-right">
+        <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+        <button class="panel-close" onclick="closeChatModal()" style="position:static">✕</button>
+      </div>
+    </div>
+    <div id="chatBody" style="display:flex;flex-direction:column;flex:1;overflow:hidden"></div>
+  </div>
+</div>
+
+<!-- ── ONBOARDING ── -->
+<div class="modal-overlay open" id="onboardOverlay">
+  <div class="onboard-modal">
+    <div class="onboard-logo">Spoon</div>
+    <div class="onboard-tagline">Skip the algorithm. Trust a Spoon.</div>
+    <label class="onboard-label">Your name</label>
+    <input class="onboard-input" id="onboardName" placeholder="e.g. Mia" oninput="updatePreview()"/>
+    <label class="onboard-label">Pick your spoon colour</label>
+    <div class="color-grid" id="colorGrid"></div>
+    <div class="spoon-preview-row">
+      <div class="preview-spoon-wrap" id="previewSpoon"></div>
+      <div>
+        <div class="preview-text">Your Spoon is</div>
+        <div class="preview-name" id="previewName">waiting…</div>
+      </div>
+    </div>
+    <button class="btn-start" onclick="startExploring()">Start exploring Brisbane 🥄</button>
+  </div>
+</div>
+
+<script>
+// ── MAPBOX + SUPABASE TOKENS ──
+const MAPBOX_TOKEN = 'pk.eyJ1Ijoic3Bvb24tbWFwIiwiYSI6ImNtbm9obXBzaDI3NnQyb29vZWNkZnR5ZXgifQ.1bWimnUpLzKrh5_vT1n9Eg';
+const SUPABASE_URL  = 'https://ipjzirxltkfbmckekcig.supabase.co';
+const SUPABASE_KEY  = 'sb_publishable_QCYHnZWtiKbt9xjU4Jc8Ig_k097jxva';
+let db = null; // initialised after supabase CDN loads
+</script>
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+
+// ── SVG SPOON ──
+function spoonSVG(fill='#FFF5E4', height=60, wobble=false) {
+  const w = Math.round(height * 0.37);
+  const f = wobble ? ' filter="url(#hd)"' : '';
+  return `<svg width="${w}" height="${height}" viewBox="0 0 28 80" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+    <path d="M14 3 C21.5 2.5,26 9,26 16.5 C26 25.5,20.5 31,16 32.5 L16.8 70.5 C17 74,15.5 77.5,14 77.5 C12.5 77.5,11 74,11.2 70.5 L12 32.5 C7.5 31,2 25.5,2 16.5 C2 9,6.5 2.5,14 3 Z"
+      fill="${fill}" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"${f}/>
+  </svg>`;
+}
+function spoonRow(n, h=20, fill='#FFF5E4') {
+  return '<div style="display:flex;gap:2px;align-items:flex-end">' + Array(n).fill(spoonSVG(fill,h,false)).join('') + '</div>';
+}
+
+// ── CONSTANTS ──
+const COLORS = ['#FF8B8B','#FFB347','#FFD93D','#A8D8A8','#87CEEB','#C3A8D8','#E8A0B0','#98D8C8'];
+const SPOON_DESCS = ['','Edible','Decent','Good','Great','Unmissable'];
+
+// ── DATA ──
+const RESTAURANTS = [
+  { id:1, name:"Greca", category:"Greek", address:"Howard Smith Wharves, Brisbane City", lat:-27.4569, lng:153.0359, spoons:5, totalRatings:47, daily:12, weekly:67, monthly:245,
+    reviews:[
+      {author:"Mia",spoons:5,text:"The lamb shoulder is genuinely one of the best things I've eaten in Brisbane.",tags:["Worth it","Felt it","Fancy","Romantic"],mustOrder:"Lamb shoulder",back:"Already booked",date:"2 days ago"},
+      {author:"Sophie",spoons:5,text:"Book ahead! Dips platter is non-negotiable.",tags:["Painful but worth it","Fair","Buzzy"],mustOrder:"Dips platter",back:"Definitely",date:"1 week ago"}
+    ],
+    chats:[{author:"Mia",color:"#FF8B8B",text:"Just finished lunch — no wait right now!",time:"12:34"},{author:"Sophie",color:"#C3A8D8",text:"Is the lamb shoulder still on?",time:"12:41"},{author:"Mia",color:"#FF8B8B",text:"Yes!! They still have it 🙌",time:"12:42"}]
+  },
+  { id:2, name:"Taro's Ramen", category:"Japanese", address:"Level 1, 111 Mary St, Brisbane City", lat:-27.4720, lng:153.0240, spoons:4, totalRatings:89, daily:18, weekly:89, monthly:312,
+    reviews:[
+      {author:"Yuki",spoons:5,text:"Best ramen in Brisbane, full stop. Tonkotsu broth is insanely rich.",tags:["Painful but worth it","Steal 🤑","Cosy"],mustOrder:"Tonkotsu + soft egg",back:"Already booked",date:"3 days ago"},
+      {author:"Anna",spoons:4,text:"Queue moves fast. Spicy miso is incredible.",tags:["Moved fast","Fair","Lively"],mustOrder:"Spicy miso",back:"Definitely",date:"5 days ago"}
+    ],
+    chats:[{author:"Yuki",color:"#FFD93D",text:"Queue is about 20 mins rn — moving fast!",time:"11:52"},{author:"Anna",color:"#A8D8A8",text:"Is the spicy miso still available?",time:"12:03"},{author:"Yuki",color:"#FFD93D",text:"Yes it is! Just ordered it lol",time:"12:04"}]
+  },
+  { id:3, name:"Pawpaw Café", category:"Brunch", address:"1 Brighton Rd, Newstead", lat:-27.4501, lng:153.0455, spoons:4, totalRatings:63, daily:9, weekly:44, monthly:189,
+    reviews:[
+      {author:"Grace",spoons:4,text:"My go-to brunch spot. Corn fritters are insane and coffee is top notch.",tags:["Zero queue","Fair","Cosy"],mustOrder:"Corn fritters",back:"Already booked",date:"1 week ago"}
+    ],
+    chats:[{author:"Grace",color:"#A8D8A8",text:"Arrived 9am — only 5 min wait 🌟",time:"9:07"},{author:"Lily",color:"#E8A0B0",text:"Are they doing the seasonal smoothie bowl?",time:"9:15"},{author:"Grace",color:"#A8D8A8",text:"Yep! Mango season one is on ☀️",time:"9:16"}]
+  },
+  { id:4, name:"Julius Pizzeria", category:"Italian", address:"77 Grey St, South Brisbane", lat:-27.4789, lng:153.0173, spoons:4, totalRatings:54, daily:7, weekly:38, monthly:156,
+    reviews:[
+      {author:"Olivia",spoons:5,text:"Wood-fired, thin, perfectly charred. Burrata starter will change your life.",tags:["Zero queue","Felt it","Romantic","Fancy"],mustOrder:"Burrata + cacio e pepe pizza",back:"Already booked",date:"4 days ago"}
+    ],
+    chats:[{author:"Olivia",color:"#FFB347",text:"Walk-in friendly tonight! 🍕",time:"19:22"},{author:"Chloe",color:"#98D8C8",text:"Is the stracciatella starter still on?",time:"19:30"}]
+  },
+  { id:5, name:"Pearl Café", category:"Café", address:"1 Boundary St, West End", lat:-27.4818, lng:153.0097, spoons:3, totalRatings:112, daily:15, weekly:72, monthly:298,
+    reviews:[
+      {author:"Hannah",spoons:3,text:"Great coffee, iconic West End spot. Space is beautiful but food is just okay.",tags:["Painful but worth it","Fair","Cosy","Hidden gem"],mustOrder:"Flat white",back:"Definitely",date:"1 week ago"}
+    ],
+    chats:[{author:"Hannah",color:"#C3A8D8",text:"Super busy this morning but tables clearing fast",time:"8:45"}]
+  },
+  { id:6, name:"Longtime", category:"Asian Fusion", address:"481 Brunswick St, Fortitude Valley", lat:-27.4576, lng:153.0395, spoons:5, totalRatings:38, daily:11, weekly:53, monthly:201,
+    reviews:[
+      {author:"Isabelle",spoons:5,text:"Hidden gem in the Valley. South-East Asian small plates are genuinely exciting. The betel leaf bites are 🤤",tags:["Zero queue","Felt it","Hidden gem","Lively"],mustOrder:"Betel leaf bites",back:"Already booked",date:"5 days ago"},
+      {author:"Natalie",spoons:5,text:"Incredible cocktails. Special without being stuffy.",tags:["Zero queue","Ouch 💸","Fancy","Romantic"],mustOrder:"Cocktail menu + duck",back:"Already booked",date:"1 week ago"}
+    ],
+    chats:[{author:"Isabelle",color:"#C3A8D8",text:"So good tonight! Duck dish is still on 🙌",time:"20:11"},{author:"Natalie",color:"#87CEEB",text:"Are the betel leaf bites available??",time:"20:18"},{author:"Isabelle",color:"#C3A8D8",text:"Yes yes yes!!! Order immediately",time:"20:19"}]
+  },
+  { id:7, name:"Montrachet", category:"French", address:"224 Given Tce, Paddington", lat:-27.4600, lng:153.0009, spoons:5, totalRatings:29, daily:5, weekly:28, monthly:98,
+    reviews:[
+      {author:"Charlotte",spoons:5,text:"Brisbane's best French restaurant. Duck confit is perfect. White tablecloths but not intimidating.",tags:["Zero queue","Ouch 💸","Fancy","Romantic"],mustOrder:"Duck confit + soufflé (order at start!)",back:"Already booked",date:"3 weeks ago"}
+    ],
+    chats:[{author:"Charlotte",color:"#E8A0B0",text:"Reminder: order the soufflé at the START of the meal!! 🎂",time:"19:05"}]
+  },
+  { id:8, name:"Morning After", category:"Bakery", address:"11 Wandoo St, Fortitude Valley", lat:-27.4556, lng:153.0322, spoons:4, totalRatings:76, daily:22, weekly:108, monthly:389,
+    reviews:[
+      {author:"Ruby",spoons:5,text:"Croissants sell out by 9am. Get there EARLY. Ham & cheese is worth waking up for.",tags:["Moved fast","Steal 🤑","Cosy","Hidden gem"],mustOrder:"Ham & cheese croissant",back:"Already booked",date:"2 days ago"},
+      {author:"Violet",spoons:4,text:"Best coffee in the Valley. Banana bread still warm is a dream.",tags:["Zero queue","Fair","Cosy"],mustOrder:"Banana bread + batch brew",back:"Definitely",date:"1 week ago"}
+    ],
+    chats:[{author:"Ruby",color:"#FFB347",text:"Plain croissants just sold out! Ham & cheese still here 🥐",time:"8:47"},{author:"Violet",color:"#98D8C8",text:"Any almond croissants left?",time:"8:52"},{author:"Ruby",color:"#FFB347",text:"2 left when I came in — hurry!!",time:"8:53"}]
+  }
+];
+
+const MOCK_ACTIVE = {
+  1:[{name:"Mia",color:"#FF8B8B"}],
+  6:[{name:"Isabelle",color:"#C3A8D8"},{name:"Nat",color:"#87CEEB"}],
+  8:[{name:"Ruby",color:"#FFB347"}]
+};
+
+// ── USER STATE ──
+let currentUser = null;
+let selectedColor = COLORS[0];
+let selectedSpoons = 0;
+let currentRankTab = 'daily';
+let activePanelId = null;
+
+// ── SEARCH STATE ──
+let searchDebounce = null;
+let searchResults = [];
+let dropdownVisible = false;
+let selectedResultIndex = -1;
+
+// ── ONBOARDING ──
+function buildColorGrid() {
+  const grid = document.getElementById('colorGrid');
+  COLORS.forEach((c,i) => {
+    const el = document.createElement('div');
+    el.className = 'color-swatch'+(i===0?' selected':'');
+    el.style.background = c;
+    el.onclick = () => {
+      selectedColor = c;
+      document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));
+      el.classList.add('selected');
+      updatePreview();
+    };
+    grid.appendChild(el);
+  });
+}
+function updatePreview() {
+  const name = document.getElementById('onboardName').value.trim();
+  document.getElementById('previewSpoon').innerHTML = spoonSVG(selectedColor, 62, true);
+  document.getElementById('previewName').textContent = name || 'waiting…';
+}
+function startExploring() {
+  const name = document.getElementById('onboardName').value.trim();
+  if (!name) { document.getElementById('onboardName').focus(); return; }
+  currentUser = { name, color:selectedColor, checkedInAt:null };
+  document.getElementById('headerSpoon').innerHTML = spoonSVG(selectedColor, 36, false);
+  document.getElementById('headerName').textContent = name;
+  document.getElementById('userPill').style.display = 'flex';
+  document.getElementById('onboardOverlay').classList.remove('open');
+}
+
+// ── RANKINGS ──
+function setRankTab(tab, btn) {
+  currentRankTab = tab;
+  document.querySelectorAll('.rank-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  renderRankings();
+}
+function renderRankings() {
+  const sorted = [...RESTAURANTS].sort((a,b) => b[currentRankTab] - a[currentRankTab]);
+  const list = document.getElementById('rankList');
+  list.innerHTML = sorted.map((r,i) => `
+    <div class="rank-item${activePanelId===r.id?' active-panel':''}" onclick="openPanel(${r.id})">
+      <div class="rank-num${i<3?' top':''}">#${i+1}</div>
+      <div class="rank-info">
+        <div class="rank-name">${r.name}</div>
+        <div class="rank-meta">
+          <div class="rank-spoons-mini">${spoonRow(r.spoons, 12, '#111')}</div>
+          <span class="rank-visits">${r[currentRankTab]} visits</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── SEARCH ──
+async function onSearchInput(val) {
+  clearTimeout(searchDebounce);
+  const dd = document.getElementById('searchDropdown');
+  if (!val.trim()) { dd.classList.remove('open'); return; }
+
+  // Show loading
+  dd.innerHTML = '<div class="search-loading">Searching Brisbane…</div>';
+  dd.classList.add('open');
+  dropdownVisible = true;
+
+  searchDebounce = setTimeout(async () => {
+    try {
+      // Check our own database first
+      const localMatches = RESTAURANTS.filter(r =>
+        r.name.toLowerCase().includes(val.toLowerCase()) ||
+        r.category.toLowerCase().includes(val.toLowerCase())
+      );
+
+      // Query Mapbox Geocoding for Brisbane POIs
+      const mbUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(val)}.json?proximity=153.0251,-27.4698&country=AU&types=poi&limit=6&access_token=${MAPBOX_TOKEN}`;
+      const res = await fetch(mbUrl);
+      const data = await res.json();
+
+      searchResults = [];
+      let html = '';
+
+      // Local matches first
+      localMatches.forEach(r => {
+        searchResults.push({ type:'local', id:r.id });
+        html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
+          <span class="search-result-name search-in-spoon">🥄 ${r.name}</span>
+          <span class="search-result-addr">${r.address}</span>
+          <span class="search-result-tag">${r.category} · ${r.spoons} spoon${r.spoons>1?'s':''}</span>
+        </div>`;
+      });
+
+      // Mapbox results (not already in local)
+      const localNames = new Set(localMatches.map(r=>r.name.toLowerCase()));
+      (data.features||[]).filter(f => !localNames.has(f.text.toLowerCase()))
+      .forEach(f => {
+        const name = f.text;
+        const addr = f.place_name.split(',').slice(1,3).join(',').trim();
+        const rawCat = f.properties?.category || '';
+        const type = rawCat ? rawCat.split(',')[0].charAt(0).toUpperCase()+rawCat.split(',')[0].slice(1) : 'Place';
+        searchResults.push({ type:'mapbox', name, addr, lat:f.center[1], lng:f.center[0], placeType:type });
+        html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
+          <span class="search-result-name search-new">${name}</span>
+          <span class="search-result-addr">${addr}</span>
+          <span class="search-result-tag search-new">Not on Spoon yet — be first!</span>
+        </div>`;
+      });
+
+      dd.innerHTML = html || '<div class="search-loading">No results found</div>';
+    } catch(e) {
+      // Fallback: only show local matches
+      const localMatches = RESTAURANTS.filter(r => r.name.toLowerCase().includes(val.toLowerCase()));
+      if (localMatches.length) {
+        searchResults = localMatches.map(r=>({type:'local',id:r.id}));
+        dd.innerHTML = localMatches.map((r,i)=>`
+          <div class="search-result" onclick="selectSearchResult(${i})">
+            <span class="search-result-name search-in-spoon">🥄 ${r.name}</span>
+            <span class="search-result-addr">${r.address}</span>
+          </div>`).join('');
+      } else {
+        dd.innerHTML = '<div class="search-loading">No results found</div>';
+      }
+    }
+  }, 350);
+}
+
+function selectSearchResult(idx) {
+  const r = searchResults[idx];
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchDropdown').classList.remove('open');
+
+  if (r.type === 'local') {
+    const restaurant = RESTAURANTS.find(x=>x.id===r.id);
+    map.flyTo({ center: [restaurant.lng, restaurant.lat], zoom: 16 });
+    openPanel(r.id);
+  } else {
+    // New place — fly to it and open "add this spot" panel
+    map.flyTo({ center: [r.lng, r.lat], zoom: 17 });
+    openNewPlacePanel(r);
+  }
+}
+
+function hideDropdownDelayed() {
+  setTimeout(() => document.getElementById('searchDropdown').classList.remove('open'), 200);
+}
+
+function searchKeydown(e) {
+  if (e.key === 'Escape') {
+    document.getElementById('searchDropdown').classList.remove('open');
+    document.getElementById('searchInput').value = '';
+  }
+}
+
+function openNewPlacePanel(place) {
+  activePanelId = null;
+  document.getElementById('panelContent').innerHTML = renderNewPlacePanel(place);
+  document.getElementById('sidePanel').classList.add('open');
+}
+
+function renderNewPlacePanel(place) {
+  return `
+    <div class="panel-category">${place.placeType || 'Place'}</div>
+    <div class="panel-name">${place.name}</div>
+    <div class="panel-address">${place.addr}</div>
+    <div class="new-place-banner">
+      <strong>Not on Spoon yet!</strong>
+      Be the first Spoon to rate this place and put it on the map.
+    </div>
+    <div class="rate-form" id="newPlaceForm">
+      <div>
+        <label class="form-label">Your take</label>
+        <textarea class="form-textarea" id="npReview" placeholder="What made it worth the visit?"></textarea>
+      </div>
+      <div>
+        <label class="form-label">Spoon rating</label>
+        <div class="spoon-picker-row" id="npSpoonRow">
+          ${[1,2,3,4,5].map(i=>`<button class="spoon-pick-btn" onclick="pickNpSpoons(${i})">${spoonSVG('#111',26,false)}</button>`).join('')}
+          <span class="spoon-rating-desc" id="npSpoonDesc">tap to rate</span>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Worth the wait?</label>
+        <div class="chips">${['Zero queue','Moved fast','Painful but worth it','Never again'].map(t=>`<div class="chip" onclick="toggleChip(this,'npWait')">${t}</div>`).join('')}</div>
+      </div>
+      <div>
+        <label class="form-label">Wallet check</label>
+        <div class="chips">${['Steal 🤑','Fair','Felt it','Ouch 💸'].map(t=>`<div class="chip" onclick="toggleChip(this,'npWallet')">${t}</div>`).join('')}</div>
+      </div>
+      <div>
+        <label class="form-label">The vibe</label>
+        <div class="chips">${['Cosy','Buzzy','Fancy','Hidden gem','Romantic','Lively'].map(t=>`<div class="chip" onclick="toggleChip(this,'npVibe')">${t}</div>`).join('')}</div>
+      </div>
+      <div>
+        <label class="form-label">Must order</label>
+        <input class="form-input" id="npMust" placeholder="The thing everyone has to get…"/>
+      </div>
+      <button class="btn-submit" onclick="submitNewPlace('${place.name.replace(/'/g,"\\'")}', ${place.lat}, ${place.lng})">Drop this spot 🥄</button>
+    </div>`;
+}
+
+let npSelectedSpoons = 0;
+function pickNpSpoons(n) {
+  npSelectedSpoons = n;
+  document.querySelectorAll('#npSpoonRow .spoon-pick-btn').forEach((b,i)=>b.classList.toggle('lit',i<n));
+  document.getElementById('npSpoonDesc').textContent = SPOON_DESCS[n];
+}
+
+function submitNewPlace(name, lat, lng) {
+  closePanel();
+  toast(`🥄 "${name}" is on Spoon now!`);
+}
+
+function toggleChip(el, group) {
+  if (group==='npVibe') { el.classList.toggle('selected'); return; }
+  el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── MAP ──
+let map, mapMarkers = {};
+
+function initMap() {
+  // Set token right before use (after CDN is guaranteed loaded)
+  mapboxgl.accessToken = MAPBOX_TOKEN;
+
+  // Init Supabase client
+  if (typeof supabase !== 'undefined') {
+    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+
+  map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/light-v11',
+    center: [153.022, -27.468],
+    zoom: 13
+  });
+  map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+  map.on('load', () => {
+    RESTAURANTS.forEach(r => addMarker(r));
+  });
+}
+
+function getActiveHere(id) {
+  const mock = MOCK_ACTIVE[id]||[];
+  if (currentUser && currentUser.checkedInAt===id) return [...mock,{name:currentUser.name,color:currentUser.color}];
+  return mock;
+}
+
+function makeMarkerHTML(r, panelActive) {
+  const active = getActiveHere(r.id);
+  const avatarsHtml = active.length
+    ? '<div class="marker-avatars">'+active.map(u=>`<div class="avatar-dot" style="background:${u.color}">${u.name[0].toUpperCase()}</div>`).join('')+'</div>'
+    : '';
+  return `<div class="marker-wrap">
+    <div class="marker-label${panelActive?' active':''}"> ${r.name}</div>
+    <div class="marker-spoons-row">${spoonRow(r.spoons,18)}</div>
+    ${avatarsHtml}
+  </div>`;
+}
+
+function addMarker(r) {
+  const el = document.createElement('div');
+  el.innerHTML = makeMarkerHTML(r, false);
+  el.querySelector('.marker-wrap').addEventListener('click', () => openPanel(r.id));
+  const marker = new mapboxgl.Marker({ element: el, anchor: 'top-left' })
+    .setLngLat([r.lng, r.lat])
+    .addTo(map);
+  mapMarkers[r.id] = { marker, el };
+}
+
+function refreshMarker(id) {
+  const r = RESTAURANTS.find(x=>x.id===id);
+  if (r && mapMarkers[id]) {
+    mapMarkers[id].el.innerHTML = makeMarkerHTML(r, activePanelId===id);
+    mapMarkers[id].el.querySelector('.marker-wrap').addEventListener('click', () => openPanel(r.id));
+  }
+}
+
+// ── SIDE PANEL ──
+function openPanel(id) {
+  if (activePanelId) refreshMarker(activePanelId);
+  activePanelId = id;
+  refreshMarker(id);
+  renderRankings(); // update active highlight in rankings
+  document.getElementById('panelContent').innerHTML = renderPanel(id);
+  document.getElementById('sidePanel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('sidePanel').classList.remove('open');
+  if (activePanelId) { refreshMarker(activePanelId); activePanelId = null; }
+  renderRankings();
+}
+
+function renderPanel(id) {
+  const r = RESTAURANTS.find(x=>x.id===id);
+  const checkedHere  = currentUser && currentUser.checkedInAt===id;
+  const checkedElsew = currentUser && currentUser.checkedInAt && !checkedHere;
+  const active = getActiveHere(id);
+
+  const whoHtml = active.length
+    ? `<div class="whos-here"><div class="whos-here-avatars">${active.map(u=>`<div class="avatar-dot" style="background:${u.color}">${u.name[0].toUpperCase()}</div>`).join('')}</div><span>${active.length} Spoon${active.length>1?'s':''} here right now</span></div>`
+    : `<div class="whos-here"><span style="color:#ddd">No Spoons checked in yet — be first!</span></div>`;
+
+  let spoonBtn = '';
+  if (currentUser) {
+    if (checkedHere) spoonBtn = `<button class="spoon-in-btn checked-in" onclick="spoonOut()">Spoon out — leaving ${r.name}</button>`;
+    else if (checkedElsew) {
+      const el = RESTAURANTS.find(x=>x.id===currentUser.checkedInAt);
+      spoonBtn = `<button class="spoon-in-btn elsewhere">Spoon in</button>
+        <div class="elsewhere-note">You're at ${el.name}. <span onclick="spoonOut();openPanel(${id})">Spoon out first →</span></div>`;
+    } else spoonBtn = `<button class="spoon-in-btn" onclick="spoonIn(${id})">Spoon in 🥄</button>`;
+  }
+
+  const reviewsHtml = r.reviews.map(rv=>`
+    <div class="review-item">
+      <div class="review-top"><span class="review-author">${rv.author}</span><span style="display:flex;gap:1px">${spoonRow(rv.spoons,13,'#111')}</span></div>
+      ${rv.tags?`<div class="review-tags">${rv.tags.map(t=>`<span class="review-tag">${t}</span>`).join('')}</div>`:''}
+      <div class="review-text">${rv.text}</div>
+      ${rv.mustOrder?`<div class="review-must">Must order: <strong>${rv.mustOrder}</strong></div>`:''}
+      <div class="review-date">${rv.date} · ${rv.back||''}</div>
+    </div>`).join('');
+
+  return `
+    <div class="panel-category">${r.category}</div>
+    <div class="panel-name">${r.name}</div>
+    <div class="panel-address">${r.address}</div>
+    <div class="panel-rating-row">
+      <span style="display:flex;gap:2px">${spoonRow(r.spoons,21,'#111')}</span>
+      <span class="rating-meta">${r.totalRatings} Spoons rated</span>
+    </div>
+    <div class="panel-photo">📸 photos from Spoons</div>
+    ${whoHtml}
+    ${spoonBtn}
+    <button class="chat-btn" onclick="openChatModal(${r.id})">Chat with Spoons <div class="live-badge"><div class="live-dot"></div>LIVE</div></button>
+    <div class="section-label">What Spoons are saying</div>
+    ${reviewsHtml}`;
+}
+
+// ── SPOON IN / OUT ──
+function spoonIn(id) {
+  if (!currentUser) return;
+  currentUser.checkedInAt = id;
+  const r = RESTAURANTS.find(x=>x.id===id);
+  document.getElementById('headerLoc').textContent = '📍 '+r.name;
+  refreshMarker(id);
+  openPanel(id);
+  openChatModal(id);
+  toast(`You're in at ${r.name} 🥄`);
+}
+function spoonOut() {
+  if (!currentUser||!currentUser.checkedInAt) return;
+  const prev = currentUser.checkedInAt;
+  currentUser.checkedInAt = null;
+  document.getElementById('headerLoc').textContent = 'not checked in';
+  refreshMarker(prev);
+  if (activePanelId===prev) openPanel(prev);
+}
+
+// ── CHAT MODAL ──
+function openChatModal(id) {
+  const r = RESTAURANTS.find(x=>x.id===id);
+  const checkedHere = currentUser && currentUser.checkedInAt===id;
+  const active = getActiveHere(id);
+  document.getElementById('chatPlaceName').textContent = r.name;
+  document.getElementById('chatMeta').textContent = active.length ? `${active.length} Spoon${active.length>1?'s':''} here now` : 'No Spoons checked in yet';
+  const body = document.getElementById('chatBody');
+  if (checkedHere) {
+    body.innerHTML = `
+      <div class="chat-messages" id="chatMessages">
+        ${r.chats.map(m=>`<div class="msg-wrap"><div class="msg-author-row"><div class="msg-author-dot" style="background:${m.color}">${m.author[0]}</div><span class="msg-author">${m.author}</span></div><div class="msg-bubble">${m.text}</div><span class="msg-time">${m.time}</span></div>`).join('')}
+        <div class="msg-system">You Spooned in 🥄 Ask away!</div>
+      </div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chatInput" placeholder="Ask the Spoons anything…" onkeydown="if(event.key==='Enter')sendMsg()"/>
+        <button class="chat-send" onclick="sendMsg()">Send</button>
+      </div>`;
+    document.getElementById('chatMessages').scrollTop = 99999;
+  } else {
+    body.innerHTML = `<div class="chat-locked">
+      <div style="display:flex;gap:3px">${spoonRow(3,34,'#eee')}</div>
+      <p>Spoon in to join the chat</p>
+      <small>You need to be at <strong>${r.name}</strong><br>to chat with the Spoons here.</small><br>
+      ${currentUser?(currentUser.checkedInAt
+        ?`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="spoonOut();spoonIn(${id})">Switch here 🥄</button>`
+        :`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="closeChatModal();spoonIn(${id})">Spoon in 🥄</button>`):''}
+    </div>`;
+  }
+  document.getElementById('chatOverlay').classList.add('open');
+}
+function closeChatModal() { document.getElementById('chatOverlay').classList.remove('open'); }
+function chatBgClick(e) { if (e.target===document.getElementById('chatOverlay')) closeChatModal(); }
+function sendMsg() {
+  const inp = document.getElementById('chatInput');
+  const txt = inp.value.trim(); if (!txt) return;
+  const now=new Date(); const time=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  const el=document.getElementById('chatMessages');
+  el.innerHTML+=`<div class="msg-wrap own"><div class="msg-bubble own">${txt}</div><span class="msg-time">${time}</span></div>`;
+  inp.value=''; el.scrollTop=99999;
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
+}
+
+// ── INIT ──
+buildColorGrid();
+updatePreview();
+initMap();
+renderRankings();
+</script>
+</body>
+</html>
