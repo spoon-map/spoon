@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spoon — Skip the algorithm. Trust a Spoon.</title>
+  <title>Spoon â Skip the algorithm. Trust a Spoon.</title>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:'Inter',sans-serif; background:#fff; color:#111; height:100vh; overflow:hidden; }
 
-    /* ── HEADER ── */
+    /* ââ HEADER ââ */
     .header {
       position:fixed; top:0; left:0; right:0; z-index:1000;
       background:#fff; border-bottom:1.5px solid #111;
@@ -67,27 +67,58 @@
     .user-info-name { font-family:'Caveat',cursive; font-size:14px; line-height:1.1; }
     .user-info-loc { font-size:10px; color:#888; }
 
-    /* ── LAYOUT ── */
+    /* ââ LAYOUT ââ */
     #map {
       position:fixed; top:54px; left:260px; right:0; bottom:0; z-index:1;
       transition:left 0.3s ease;
     }
+    #map.panel-hidden { left:0; }
 
-    /* ── LEFT PANEL (Rankings) ── */
+    /* ââ LEFT PANEL (Rankings) ââ */
     .left-panel {
       position:fixed; top:54px; left:0;
       width:260px; bottom:0;
       background:#fff; border-right:1.5px solid #111;
       z-index:400; display:flex; flex-direction:column;
-      overflow:hidden;
+      overflow:hidden; transition:left 0.3s ease;
     }
+    .left-panel.hidden { left:-262px; }
+
+    /* Panel toggle button â always visible */
+    .panel-toggle-btn {
+      position:fixed; top:62px; left:260px; z-index:600;
+      background:#fff; border:1.5px solid #111; border-left:none;
+      width:22px; height:40px;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; font-size:11px; color:#888;
+      transition:left 0.3s ease; box-shadow:2px 2px 0 #111;
+    }
+    .panel-toggle-btn.hidden { left:0; border-left:1.5px solid #111; }
+    .panel-toggle-btn:hover { background:#f5f5f5; color:#111; }
+
     .left-panel-header {
       padding:16px 16px 12px;
       border-bottom:1px solid #eee;
     }
     .left-panel-title {
       font-family:'Caveat',cursive; font-size:22px; font-weight:700;
-      margin-bottom:10px;
+      margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;
+    }
+    .left-panel-close {
+      background:none; border:none; font-size:16px; color:#bbb; cursor:pointer; line-height:1;
+    }
+    .left-panel-close:hover { color:#111; }
+
+    /* Mobile: panel starts hidden, floats over map */
+    @media(max-width:700px) {
+      #map { left:0 !important; }
+      .left-panel { box-shadow:4px 0 16px rgba(0,0,0,0.15); z-index:800; }
+      .panel-toggle-btn { top:auto; bottom:24px; left:12px; width:44px; height:44px;
+        border:1.5px solid #111; border-radius:50%; box-shadow:2px 2px 0 #111;
+        font-size:18px; background:#fff; }
+      .panel-toggle-btn.hidden { left:12px; border:1.5px solid #111; }
+      .side-panel { width:100% !important; right:-100% !important; }
+      .side-panel.open { right:0 !important; }
     }
     .rank-tabs { display:flex; gap:6px; }
     .rank-tab {
@@ -120,7 +151,7 @@
     .rank-visits { font-size:11px; color:#aaa; }
     .rank-spoons-mini { display:flex; gap:1px; }
 
-    /* ── MAP MARKERS ── */
+    /* ââ MAP MARKERS ââ */
     .marker-wrap { display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
     .marker-label {
       background:#fff; border:1.5px solid #111; border-radius:20px;
@@ -139,7 +170,7 @@
       box-shadow:1px 1px 0 #ccc;
     }
 
-    /* ── RIGHT PANEL ── */
+    /* ââ RIGHT PANEL ââ */
     .side-panel {
       position:fixed; top:54px; right:-390px;
       width:370px; bottom:0; background:#fff;
@@ -212,11 +243,11 @@
     .btn-submit:hover { background:#333; }
     .form-divider { border:none; border-top:1px solid #eee; }
 
-    /* ── MODALS ── */
+    /* ââ MODALS ââ */
     .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:2000; display:none; align-items:center; justify-content:center; }
     .modal-overlay.open { display:flex; }
 
-    /* ── ONBOARDING ── */
+    /* ââ ONBOARDING ââ */
     .onboard-modal { background:#fff; border:1.5px solid #111; box-shadow:6px 6px 0 #111; width:400px; max-width:95vw; padding:34px 30px; }
     .onboard-logo { font-family:'Caveat',cursive; font-size:46px; font-weight:700; line-height:1; margin-bottom:4px; }
     .onboard-tagline { font-size:12px; color:#888; margin-bottom:28px; }
@@ -234,7 +265,7 @@
     .btn-start { width:100%; background:#111; color:#fff; border:none; padding:13px; font-family:'Caveat',cursive; font-size:19px; cursor:pointer; }
     .btn-start:hover { background:#333; }
 
-    /* ── CHAT MODAL ── */
+    /* ââ CHAT MODAL ââ */
     .chat-modal { background:#fff; border:1.5px solid #111; box-shadow:5px 5px 0 #111; width:420px; max-width:95vw; height:560px; display:flex; flex-direction:column; }
     .chat-modal-header { padding:14px 18px; border-bottom:1.5px solid #111; display:flex; align-items:flex-start; justify-content:space-between; }
     .chat-place-name { font-family:'Caveat',cursive; font-size:23px; font-weight:700; line-height:1; }
@@ -265,6 +296,33 @@
 
     .mapboxgl-ctrl-attrib { font-size:9px !important; }
     .mapboxgl-ctrl-logo { display:none !important; }
+
+    /* ââ CHECK-IN INDICATOR ââ */
+    .checkin-indicator {
+      display:none; align-items:center; gap:7px;
+      background:#111; color:#fff;
+      padding:5px 13px 5px 10px;
+      font-family:'Caveat',cursive; font-size:15px;
+      white-space:nowrap; flex-shrink:0;
+    }
+    .checkin-indicator.visible { display:flex; }
+    .checkin-pulse { width:7px; height:7px; background:#7FFF7F; border-radius:50%; animation:blink 1.4s infinite; flex-shrink:0; }
+
+    /* ââ REVIEW MODAL ââ */
+    .review-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:3000; display:none; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
+    .review-overlay.open { display:flex; }
+    .review-modal { background:#fff; border:1.5px solid #111; box-shadow:6px 6px 0 #111; width:450px; max-width:95vw; padding:28px 24px; position:relative; }
+    .review-modal-title { font-family:'Caveat',cursive; font-size:26px; font-weight:700; margin-bottom:3px; }
+    .review-modal-sub { font-size:12px; color:#888; margin-bottom:22px; }
+    .review-skip { background:none; border:none; color:#bbb; font-family:'Inter',sans-serif; font-size:13px; cursor:pointer; width:100%; text-align:center; padding:10px; margin-top:4px; }
+    .review-skip:hover { color:#666; text-decoration:underline; }
+
+    /* Active count badge on markers */
+    .active-count-badge { display:inline-flex; align-items:center; justify-content:center; background:#111; color:#fff; border-radius:20px; padding:1px 7px; font-size:11px; font-family:'Caveat',cursive; font-weight:700; margin-left:3px; }
+
+    /* Panel review form */
+    .panel-review-section { margin-top:20px; border-top:1px solid #eee; padding-top:16px; }
+    .already-reviewed { text-align:center; padding:12px 0; font-family:'Caveat',cursive; font-size:15px; color:#bbb; }
   </style>
 </head>
 <body>
@@ -279,7 +337,7 @@
   </defs>
 </svg>
 
-<!-- ── HEADER ── -->
+<!-- ââ HEADER ââ -->
 <header class="header">
   <div class="logo-wrap-inner">
     <div class="logo">Spoon</div>
@@ -293,10 +351,15 @@
   <div class="tagline">Skip the algorithm. Trust a Spoon.</div>
 
   <div class="search-wrap">
-    <span class="search-icon">🔍</span>
-    <input class="search-input" id="searchInput" placeholder="Search a restaurant or café in Brisbane…" autocomplete="off"
+    <span class="search-icon">ð</span>
+    <input class="search-input" id="searchInput" placeholder="Search a restaurant or cafÃ© in Brisbaneâ¦" autocomplete="off"
       oninput="onSearchInput(this.value)" onblur="hideDropdownDelayed()" onkeydown="searchKeydown(event)"/>
     <div class="search-dropdown" id="searchDropdown"></div>
+  </div>
+
+  <div class="checkin-indicator" id="checkinIndicator">
+    <div class="checkin-pulse"></div>
+    <span id="checkinText">somewhere</span>
   </div>
 
   <div class="user-pill" id="userPill" style="display:none">
@@ -308,15 +371,21 @@
   </div>
 </header>
 
-<!-- ── LEFT PANEL (Rankings) ── -->
-<div class="left-panel">
+<!-- ââ PANEL TOGGLE BUTTON ââ -->
+<button class="panel-toggle-btn" id="panelToggleBtn" onclick="toggleLeftPanel()" title="Toggle rankings">â</button>
+
+<!-- ââ LEFT PANEL (Rankings) ââ -->
+<div class="left-panel" id="leftPanel">
   <div class="left-panel-header">
-    <div class="left-panel-title" style="display:flex;align-items:center;gap:6px;">
-      <svg width="9" height="26" viewBox="0 0 28 80" xmlns="http://www.w3.org/2000/svg" overflow="visible">
-        <path d="M14 3 C22 2.5,26.5 9,26.5 16.5 C26.5 26,21 31.5,16 33 L16.8 70.5 C17.1 74.5,15.8 78,14 78 C12.2 78,10.9 74.5,11.2 70.5 L12 33 C7 31.5,1.5 26,1.5 16.5 C1.5 9,6 2.5,14 3 Z"
-          fill="white" stroke="#111" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      Top Spoons
+    <div class="left-panel-title">
+      <span style="display:flex;align-items:center;gap:6px;">
+        <svg width="9" height="26" viewBox="0 0 28 80" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+          <path d="M14 3 C22 2.5,26.5 9,26.5 16.5 C26.5 26,21 31.5,16 33 L16.8 70.5 C17.1 74.5,15.8 78,14 78 C12.2 78,10.9 74.5,11.2 70.5 L12 33 C7 31.5,1.5 26,1.5 16.5 C1.5 9,6 2.5,14 3 Z"
+            fill="white" stroke="#111" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Top Spoons
+      </span>
+      <button class="left-panel-close" onclick="toggleLeftPanel()" title="Close">â</button>
     </div>
     <div class="rank-tabs">
       <button class="rank-tab active" onclick="setRankTab('daily',this)">Today</button>
@@ -327,16 +396,16 @@
   <div class="rank-list" id="rankList"></div>
 </div>
 
-<!-- ── MAP ── -->
+<!-- ââ MAP ââ -->
 <div id="map"></div>
 
-<!-- ── RIGHT PANEL ── -->
+<!-- ââ RIGHT PANEL ââ -->
 <div class="side-panel" id="sidePanel">
-  <button class="panel-close" onclick="closePanel()">✕</button>
+  <button class="panel-close" onclick="closePanel()">â</button>
   <div class="panel-inner" id="panelContent"></div>
 </div>
 
-<!-- ── CHAT MODAL ── -->
+<!-- ââ CHAT MODAL ââ -->
 <div class="modal-overlay" id="chatOverlay" onclick="chatBgClick(event)">
   <div class="chat-modal">
     <div class="chat-modal-header">
@@ -346,14 +415,24 @@
       </div>
       <div class="chat-header-right">
         <div class="live-badge"><div class="live-dot"></div>LIVE</div>
-        <button class="panel-close" onclick="closeChatModal()" style="position:static">✕</button>
+        <button class="panel-close" onclick="closeChatModal()" style="position:static">â</button>
       </div>
     </div>
     <div id="chatBody" style="display:flex;flex-direction:column;flex:1;overflow:hidden"></div>
   </div>
 </div>
 
-<!-- ── ONBOARDING ── -->
+<!-- ââ REVIEW MODAL (Spoon-Out) ââ -->
+<div class="review-overlay" id="reviewOverlay">
+  <div class="review-modal">
+    <button class="panel-close" onclick="skipReview()" style="position:absolute;top:12px;right:12px">â</button>
+    <div class="review-modal-title" id="reviewModalTitle">How was it? ð¥</div>
+    <div class="review-modal-sub">Drop your honest take â Spoons trust Spoons.</div>
+    <div class="rate-form" id="reviewModalForm"></div>
+  </div>
+</div>
+
+<!-- ââ ONBOARDING ââ -->
 <div class="modal-overlay open" id="onboardOverlay">
   <div class="onboard-modal">
     <div class="onboard-logo">Spoon</div>
@@ -366,16 +445,16 @@
       <div class="preview-spoon-wrap" id="previewSpoon"></div>
       <div>
         <div class="preview-text">Your Spoon is</div>
-        <div class="preview-name" id="previewName">waiting…</div>
+        <div class="preview-name" id="previewName">waitingâ¦</div>
       </div>
     </div>
-    <button class="btn-start" onclick="startExploring()">Start exploring Brisbane 🥄</button>
+    <button class="btn-start" onclick="startExploring()">Start exploring Brisbane ð¥</button>
   </div>
 </div>
 
 <script>
-// ── MAPBOX + SUPABASE TOKENS ──
-const MAPBOX_TOKEN = 'pk.eyJ1Ijoic3Bvb24tbWFwIiwiYSI6ImNtbm9obXBzaDI3NnQyb29vZWNkZnR5ZXgifQ.1bWimnUpLzKrh5_vT1n9Eg';
+// ââ MAPBOX + SUPABASE TOKENS ââ
+const MAPBOX_TOKEN = 'pk.eyJ1Ijoic3Bvb24tbWFwIiwiYSI6ImNtbm9obXBzaDI3NnQyb29vZWNkZjR5ZXgifQ.1bWimnUpLzKrh5_vT1n9Eg';
 const SUPABASE_URL  = 'https://ipjzirxltkfbmckekcig.supabase.co';
 const SUPABASE_KEY  = 'sb_publishable_QCYHnZWtiKbt9xjU4Jc8Ig_k097jxva';
 let db = null; // initialised after supabase CDN loads
@@ -384,7 +463,7 @@ let db = null; // initialised after supabase CDN loads
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 
-// ── SVG SPOON ──
+// ââ SVG SPOON ââ
 function spoonSVG(fill='#FFF5E4', height=60, wobble=false) {
   const w = Math.round(height * 0.37);
   const f = wobble ? ' filter="url(#hd)"' : '';
@@ -397,39 +476,39 @@ function spoonRow(n, h=20, fill='#FFF5E4') {
   return '<div style="display:flex;gap:2px;align-items:flex-end">' + Array(n).fill(spoonSVG(fill,h,false)).join('') + '</div>';
 }
 
-// ── CONSTANTS ──
+// ââ CONSTANTS ââ
 const COLORS = ['#FF8B8B','#FFB347','#FFD93D','#A8D8A8','#87CEEB','#C3A8D8','#E8A0B0','#98D8C8'];
 const SPOON_DESCS = ['','Edible','Decent','Good','Great','Unmissable'];
 
-// ── DATA ──
+// ââ DATA ââ
 const RESTAURANTS = [
   { id:1, name:"Greca", category:"Greek", address:"Howard Smith Wharves, Brisbane City", lat:-27.4569, lng:153.0359, spoons:5, totalRatings:47, daily:12, weekly:67, monthly:245,
     reviews:[
       {author:"Mia",spoons:5,text:"The lamb shoulder is genuinely one of the best things I've eaten in Brisbane.",tags:["Worth it","Felt it","Fancy","Romantic"],mustOrder:"Lamb shoulder",back:"Already booked",date:"2 days ago"},
       {author:"Sophie",spoons:5,text:"Book ahead! Dips platter is non-negotiable.",tags:["Painful but worth it","Fair","Buzzy"],mustOrder:"Dips platter",back:"Definitely",date:"1 week ago"}
     ],
-    chats:[{author:"Mia",color:"#FF8B8B",text:"Just finished lunch — no wait right now!",time:"12:34"},{author:"Sophie",color:"#C3A8D8",text:"Is the lamb shoulder still on?",time:"12:41"},{author:"Mia",color:"#FF8B8B",text:"Yes!! They still have it 🙌",time:"12:42"}]
+    chats:[{author:"Mia",color:"#FF8B8B",text:"Just finished lunch â no wait right now!",time:"12:34"},{author:"Sophie",color:"#C3A8D8",text:"Is the lamb shoulder still on?",time:"12:41"},{author:"Mia",color:"#FF8B8B",text:"Yes!! They still have it ð",time:"12:42"}]
   },
   { id:2, name:"Taro's Ramen", category:"Japanese", address:"Level 1, 111 Mary St, Brisbane City", lat:-27.4720, lng:153.0240, spoons:4, totalRatings:89, daily:18, weekly:89, monthly:312,
     reviews:[
-      {author:"Yuki",spoons:5,text:"Best ramen in Brisbane, full stop. Tonkotsu broth is insanely rich.",tags:["Painful but worth it","Steal 🤑","Cosy"],mustOrder:"Tonkotsu + soft egg",back:"Already booked",date:"3 days ago"},
+      {author:"Yuki",spoons:5,text:"Best ramen in Brisbane, full stop. Tonkotsu broth is insanely rich.",tags:["Painful but worth it","Steal ð¤","Cosy"],mustOrder:"Tonkotsu + soft egg",back:"Already booked",date:"3 days ago"},
       {author:"Anna",spoons:4,text:"Queue moves fast. Spicy miso is incredible.",tags:["Moved fast","Fair","Lively"],mustOrder:"Spicy miso",back:"Definitely",date:"5 days ago"}
     ],
-    chats:[{author:"Yuki",color:"#FFD93D",text:"Queue is about 20 mins rn — moving fast!",time:"11:52"},{author:"Anna",color:"#A8D8A8",text:"Is the spicy miso still available?",time:"12:03"},{author:"Yuki",color:"#FFD93D",text:"Yes it is! Just ordered it lol",time:"12:04"}]
+    chats:[{author:"Yuki",color:"#FFD93D",text:"Queue is about 20 mins rn â moving fast!",time:"11:52"},{author:"Anna",color:"#A8D8A8",text:"Is the spicy miso still available?",time:"12:03"},{author:"Yuki",color:"#FFD93D",text:"Yes it is! Just ordered it lol",time:"12:04"}]
   },
-  { id:3, name:"Pawpaw Café", category:"Brunch", address:"1 Brighton Rd, Newstead", lat:-27.4501, lng:153.0455, spoons:4, totalRatings:63, daily:9, weekly:44, monthly:189,
+  { id:3, name:"Pawpaw CafÃ©", category:"Brunch", address:"1 Brighton Rd, Newstead", lat:-27.4501, lng:153.0455, spoons:4, totalRatings:63, daily:9, weekly:44, monthly:189,
     reviews:[
       {author:"Grace",spoons:4,text:"My go-to brunch spot. Corn fritters are insane and coffee is top notch.",tags:["Zero queue","Fair","Cosy"],mustOrder:"Corn fritters",back:"Already booked",date:"1 week ago"}
     ],
-    chats:[{author:"Grace",color:"#A8D8A8",text:"Arrived 9am — only 5 min wait 🌟",time:"9:07"},{author:"Lily",color:"#E8A0B0",text:"Are they doing the seasonal smoothie bowl?",time:"9:15"},{author:"Grace",color:"#A8D8A8",text:"Yep! Mango season one is on ☀️",time:"9:16"}]
+    chats:[{author:"Grace",color:"#A8D8A8",text:"Arrived 9am â only 5 min wait ð",time:"9:07"},{author:"Lily",color:"#E8A0B0",text:"Are they doing the seasonal smoothie bowl?",time:"9:15"},{author:"Grace",color:"#A8D8A8",text:"Yep! Mango season one is on âï¸",time:"9:16"}]
   },
   { id:4, name:"Julius Pizzeria", category:"Italian", address:"77 Grey St, South Brisbane", lat:-27.4789, lng:153.0173, spoons:4, totalRatings:54, daily:7, weekly:38, monthly:156,
     reviews:[
       {author:"Olivia",spoons:5,text:"Wood-fired, thin, perfectly charred. Burrata starter will change your life.",tags:["Zero queue","Felt it","Romantic","Fancy"],mustOrder:"Burrata + cacio e pepe pizza",back:"Already booked",date:"4 days ago"}
     ],
-    chats:[{author:"Olivia",color:"#FFB347",text:"Walk-in friendly tonight! 🍕",time:"19:22"},{author:"Chloe",color:"#98D8C8",text:"Is the stracciatella starter still on?",time:"19:30"}]
+    chats:[{author:"Olivia",color:"#FFB347",text:"Walk-in friendly tonight! ð",time:"19:22"},{author:"Chloe",color:"#98D8C8",text:"Is the stracciatella starter still on?",time:"19:30"}]
   },
-  { id:5, name:"Pearl Café", category:"Café", address:"1 Boundary St, West End", lat:-27.4818, lng:153.0097, spoons:3, totalRatings:112, daily:15, weekly:72, monthly:298,
+  { id:5, name:"Pearl CafÃ©", category:"CafÃ©", address:"1 Boundary St, West End", lat:-27.4818, lng:153.0097, spoons:3, totalRatings:112, daily:15, weekly:72, monthly:298,
     reviews:[
       {author:"Hannah",spoons:3,text:"Great coffee, iconic West End spot. Space is beautiful but food is just okay.",tags:["Painful but worth it","Fair","Cosy","Hidden gem"],mustOrder:"Flat white",back:"Definitely",date:"1 week ago"}
     ],
@@ -437,23 +516,23 @@ const RESTAURANTS = [
   },
   { id:6, name:"Longtime", category:"Asian Fusion", address:"481 Brunswick St, Fortitude Valley", lat:-27.4576, lng:153.0395, spoons:5, totalRatings:38, daily:11, weekly:53, monthly:201,
     reviews:[
-      {author:"Isabelle",spoons:5,text:"Hidden gem in the Valley. South-East Asian small plates are genuinely exciting. The betel leaf bites are 🤤",tags:["Zero queue","Felt it","Hidden gem","Lively"],mustOrder:"Betel leaf bites",back:"Already booked",date:"5 days ago"},
-      {author:"Natalie",spoons:5,text:"Incredible cocktails. Special without being stuffy.",tags:["Zero queue","Ouch 💸","Fancy","Romantic"],mustOrder:"Cocktail menu + duck",back:"Already booked",date:"1 week ago"}
+      {author:"Isabelle",spoons:5,text:"Hidden gem in the Valley. South-East Asian small plates are genuinely exciting. The betel leaf bites are ð¤¤",tags:["Zero queue","Felt it","Hidden gem","Lively"],mustOrder:"Betel leaf bites",back:"Already booked",date:"5 days ago"},
+      {author:"Natalie",spoons:5,text:"Incredible cocktails. Special without being stuffy.",tags:["Zero queue","Ouch ð¸","Fancy","Romantic"],mustOrder:"Cocktail menu + duck",back:"Already booked",date:"1 week ago"}
     ],
-    chats:[{author:"Isabelle",color:"#C3A8D8",text:"So good tonight! Duck dish is still on 🙌",time:"20:11"},{author:"Natalie",color:"#87CEEB",text:"Are the betel leaf bites available??",time:"20:18"},{author:"Isabelle",color:"#C3A8D8",text:"Yes yes yes!!! Order immediately",time:"20:19"}]
+    chats:[{author:"Isabelle",color:"#C3A8D8",text:"So good tonight! Duck dish is still on ð",time:"20:11"},{author:"Natalie",color:"#87CEEB",text:"Are the betel leaf bites available??",time:"20:18"},{author:"Isabelle",color:"#C3A8D8",text:"Yes yes yes!!! Order immediately",time:"20:19"}]
   },
   { id:7, name:"Montrachet", category:"French", address:"224 Given Tce, Paddington", lat:-27.4600, lng:153.0009, spoons:5, totalRatings:29, daily:5, weekly:28, monthly:98,
     reviews:[
-      {author:"Charlotte",spoons:5,text:"Brisbane's best French restaurant. Duck confit is perfect. White tablecloths but not intimidating.",tags:["Zero queue","Ouch 💸","Fancy","Romantic"],mustOrder:"Duck confit + soufflé (order at start!)",back:"Already booked",date:"3 weeks ago"}
+      {author:"Charlotte",spoons:5,text:"Brisbane's best French restaurant. Duck confit is perfect. White tablecloths but not intimidating.",tags:["Zero queue","Ouch ð¸","Fancy","Romantic"],mustOrder:"Duck confit + soufflÃ© (order at start!)",back:"Already booked",date:"3 weeks ago"}
     ],
-    chats:[{author:"Charlotte",color:"#E8A0B0",text:"Reminder: order the soufflé at the START of the meal!! 🎂",time:"19:05"}]
+    chats:[{author:"Charlotte",color:"#E8A0B0",text:"Reminder: order the soufflÃ© at the START of the meal!! ð",time:"19:05"}]
   },
   { id:8, name:"Morning After", category:"Bakery", address:"11 Wandoo St, Fortitude Valley", lat:-27.4556, lng:153.0322, spoons:4, totalRatings:76, daily:22, weekly:108, monthly:389,
     reviews:[
-      {author:"Ruby",spoons:5,text:"Croissants sell out by 9am. Get there EARLY. Ham & cheese is worth waking up for.",tags:["Moved fast","Steal 🤑","Cosy","Hidden gem"],mustOrder:"Ham & cheese croissant",back:"Already booked",date:"2 days ago"},
+      {author:"Ruby",spoons:5,text:"Croissants sell out by 9am. Get there EARLY. Ham & cheese is worth waking up for.",tags:["Moved fast","Steal ð¤","Cosy","Hidden gem"],mustOrder:"Ham & cheese croissant",back:"Already booked",date:"2 days ago"},
       {author:"Violet",spoons:4,text:"Best coffee in the Valley. Banana bread still warm is a dream.",tags:["Zero queue","Fair","Cosy"],mustOrder:"Banana bread + batch brew",back:"Definitely",date:"1 week ago"}
     ],
-    chats:[{author:"Ruby",color:"#FFB347",text:"Plain croissants just sold out! Ham & cheese still here 🥐",time:"8:47"},{author:"Violet",color:"#98D8C8",text:"Any almond croissants left?",time:"8:52"},{author:"Ruby",color:"#FFB347",text:"2 left when I came in — hurry!!",time:"8:53"}]
+    chats:[{author:"Ruby",color:"#FFB347",text:"Plain croissants just sold out! Ham & cheese still here ð¥",time:"8:47"},{author:"Violet",color:"#98D8C8",text:"Any almond croissants left?",time:"8:52"},{author:"Ruby",color:"#FFB347",text:"2 left when I came in â hurry!!",time:"8:53"}]
   }
 ];
 
@@ -463,20 +542,42 @@ const MOCK_ACTIVE = {
   8:[{name:"Ruby",color:"#FFB347"}]
 };
 
-// ── USER STATE ──
+// ââ PANEL TOGGLE ââ
+let leftPanelOpen = true;
+function toggleLeftPanel() {
+  const panel = document.getElementById('leftPanel');
+  const btn   = document.getElementById('panelToggleBtn');
+  const map   = document.getElementById('map');
+  leftPanelOpen = !leftPanelOpen;
+  panel.classList.toggle('hidden', !leftPanelOpen);
+  btn.classList.toggle('hidden', !leftPanelOpen);
+  map.classList.toggle('panel-hidden', !leftPanelOpen);
+  btn.textContent = leftPanelOpen ? 'â' : 'â¶';
+}
+function initPanelState() {
+  // On mobile, start with panel hidden so the full map is visible
+  if (window.innerWidth <= 700) {
+    leftPanelOpen = false;
+    document.getElementById('leftPanel').classList.add('hidden');
+    document.getElementById('panelToggleBtn').classList.add('hidden');
+    document.getElementById('panelToggleBtn').textContent = 'â¶';
+  }
+}
+
+// ââ USER STATE ââ
 let currentUser = null;
 let selectedColor = COLORS[0];
 let selectedSpoons = 0;
 let currentRankTab = 'daily';
 let activePanelId = null;
 
-// ── SEARCH STATE ──
+// ââ SEARCH STATE ââ
 let searchDebounce = null;
 let searchResults = [];
 let dropdownVisible = false;
 let selectedResultIndex = -1;
 
-// ── ONBOARDING ──
+// ââ ONBOARDING ââ
 function buildColorGrid() {
   const grid = document.getElementById('colorGrid');
   COLORS.forEach((c,i) => {
@@ -495,7 +596,7 @@ function buildColorGrid() {
 function updatePreview() {
   const name = document.getElementById('onboardName').value.trim();
   document.getElementById('previewSpoon').innerHTML = spoonSVG(selectedColor, 62, true);
-  document.getElementById('previewName').textContent = name || 'waiting…';
+  document.getElementById('previewName').textContent = name || 'waitingâ¦';
 }
 function startExploring() {
   const name = document.getElementById('onboardName').value.trim();
@@ -507,7 +608,7 @@ function startExploring() {
   document.getElementById('onboardOverlay').classList.remove('open');
 }
 
-// ── RANKINGS ──
+// ââ RANKINGS ââ
 function setRankTab(tab, btn) {
   currentRankTab = tab;
   document.querySelectorAll('.rank-tab').forEach(t=>t.classList.remove('active'));
@@ -530,14 +631,14 @@ function renderRankings() {
     </div>`).join('');
 }
 
-// ── SEARCH ──
+// ââ SEARCH ââ
 async function onSearchInput(val) {
   clearTimeout(searchDebounce);
   const dd = document.getElementById('searchDropdown');
   if (!val.trim()) { dd.classList.remove('open'); return; }
 
   // Show loading
-  dd.innerHTML = '<div class="search-loading">Searching Brisbane…</div>';
+  dd.innerHTML = '<div class="search-loading">Searching Brisbaneâ¦</div>';
   dd.classList.add('open');
   dropdownVisible = true;
 
@@ -561,9 +662,9 @@ async function onSearchInput(val) {
       localMatches.forEach(r => {
         searchResults.push({ type:'local', id:r.id });
         html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
-          <span class="search-result-name search-in-spoon">🥄 ${r.name}</span>
+          <span class="search-result-name search-in-spoon">ð¥ ${r.name}</span>
           <span class="search-result-addr">${r.address}</span>
-          <span class="search-result-tag">${r.category} · ${r.spoons} spoon${r.spoons>1?'s':''}</span>
+          <span class="search-result-tag">${r.category} Â· ${r.spoons} spoon${r.spoons>1?'s':''}</span>
         </div>`;
       });
 
@@ -579,7 +680,7 @@ async function onSearchInput(val) {
         html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
           <span class="search-result-name search-new">${name}</span>
           <span class="search-result-addr">${addr}</span>
-          <span class="search-result-tag search-new">Not on Spoon yet — be first!</span>
+          <span class="search-result-tag search-new">Not on Spoon yet â be first!</span>
         </div>`;
       });
 
@@ -591,7 +692,7 @@ async function onSearchInput(val) {
         searchResults = localMatches.map(r=>({type:'local',id:r.id}));
         dd.innerHTML = localMatches.map((r,i)=>`
           <div class="search-result" onclick="selectSearchResult(${i})">
-            <span class="search-result-name search-in-spoon">🥄 ${r.name}</span>
+            <span class="search-result-name search-in-spoon">ð¥ ${r.name}</span>
             <span class="search-result-addr">${r.address}</span>
           </div>`).join('');
       } else {
@@ -611,7 +712,7 @@ function selectSearchResult(idx) {
     map.flyTo({ center: [restaurant.lng, restaurant.lat], zoom: 16 });
     openPanel(r.id);
   } else {
-    // New place — fly to it and open "add this spot" panel
+    // New place â fly to it and open "add this spot" panel
     map.flyTo({ center: [r.lng, r.lat], zoom: 17 });
     openNewPlacePanel(r);
   }
@@ -661,7 +762,7 @@ function renderNewPlacePanel(place) {
       </div>
       <div>
         <label class="form-label">Wallet check</label>
-        <div class="chips">${['Steal 🤑','Fair','Felt it','Ouch 💸'].map(t=>`<div class="chip" onclick="toggleChip(this,'npWallet')">${t}</div>`).join('')}</div>
+        <div class="chips">${['Steal ð¤','Fair','Felt it','Ouch ð¸'].map(t=>`<div class="chip" onclick="toggleChip(this,'npWallet')">${t}</div>`).join('')}</div>
       </div>
       <div>
         <label class="form-label">The vibe</label>
@@ -669,9 +770,9 @@ function renderNewPlacePanel(place) {
       </div>
       <div>
         <label class="form-label">Must order</label>
-        <input class="form-input" id="npMust" placeholder="The thing everyone has to get…"/>
+        <input class="form-input" id="npMust" placeholder="The thing everyone has to getâ¦"/>
       </div>
-      <button class="btn-submit" onclick="submitNewPlace('${place.name.replace(/'/g,"\\'")}', ${place.lat}, ${place.lng})">Drop this spot 🥄</button>
+      <button class="btn-submit" onclick="submitNewPlace('${place.name.replace(/'/g,"\\'")}', ${place.lat}, ${place.lng})">Drop this spot ð¥</button>
     </div>`;
 }
 
@@ -683,17 +784,50 @@ function pickNpSpoons(n) {
 }
 
 function submitNewPlace(name, lat, lng) {
+  const newId = Date.now(); // unique id
+  const text = document.getElementById('npReview')?.value.trim() || '';
+  const must = document.getElementById('npMust')?.value.trim() || '';
+  const spoons = npSelectedSpoons || 3;
+  const waitChip = document.querySelector('#newPlaceForm .chips:nth-child(1) .chip.selected');
+  const walletChip = document.querySelector('#newPlaceForm .chips:nth-child(2) .chip.selected');
+  const vibeChips = [...(document.querySelectorAll('#newPlaceForm .chips:nth-child(3) .chip.selected')||[])].map(c=>c.textContent);
+  const tags = [waitChip?.textContent, walletChip?.textContent, ...vibeChips].filter(Boolean);
+
+  const newRestaurant = {
+    id: newId,
+    name,
+    category: 'New Spot',
+    address: '',
+    lat, lng,
+    spoons,
+    totalRatings: 1,
+    daily: 1, weekly: 1, monthly: 1,
+    reviews: currentUser ? [{
+      author: currentUser.name,
+      spoons,
+      text: text || 'First Spoon here!',
+      tags,
+      mustOrder: must || undefined,
+      date: 'Just now'
+    }] : [],
+    chats: []
+  };
+  RESTAURANTS.push(newRestaurant);
+  addMarker(newRestaurant);
+  renderRankings();
+  npSelectedSpoons = 0;
   closePanel();
-  toast(`🥄 "${name}" is on Spoon now!`);
+  toast(`ð¥ "${name}" is on Spoon now!`);
+  setTimeout(() => openPanel(newId), 300);
 }
 
 function toggleChip(el, group) {
-  if (group==='npVibe') { el.classList.toggle('selected'); return; }
+  if (group==='npVibe' || group==='reviewVibe' || group==='panelVibe') { el.classList.toggle('selected'); return; }
   el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));
   el.classList.add('selected');
 }
 
-// ── MAP ──
+// ââ MAP ââ
 let map, mapMarkers = {};
 
 function initMap() {
@@ -725,11 +859,14 @@ function getActiveHere(id) {
 
 function makeMarkerHTML(r, panelActive) {
   const active = getActiveHere(r.id);
+  const countBadge = active.length
+    ? `<span class="active-count-badge">${active.length}ð¥</span>`
+    : '';
   const avatarsHtml = active.length
     ? '<div class="marker-avatars">'+active.map(u=>`<div class="avatar-dot" style="background:${u.color}">${u.name[0].toUpperCase()}</div>`).join('')+'</div>'
     : '';
   return `<div class="marker-wrap">
-    <div class="marker-label${panelActive?' active':''}"> ${r.name}</div>
+    <div class="marker-label${panelActive?' active':''}"> ${r.name}${countBadge}</div>
     <div class="marker-spoons-row">${spoonRow(r.spoons,18)}</div>
     ${avatarsHtml}
   </div>`;
@@ -753,7 +890,7 @@ function refreshMarker(id) {
   }
 }
 
-// ── SIDE PANEL ──
+// ââ SIDE PANEL ââ
 function openPanel(id) {
   if (activePanelId) refreshMarker(activePanelId);
   activePanelId = id;
@@ -777,16 +914,16 @@ function renderPanel(id) {
 
   const whoHtml = active.length
     ? `<div class="whos-here"><div class="whos-here-avatars">${active.map(u=>`<div class="avatar-dot" style="background:${u.color}">${u.name[0].toUpperCase()}</div>`).join('')}</div><span>${active.length} Spoon${active.length>1?'s':''} here right now</span></div>`
-    : `<div class="whos-here"><span style="color:#ddd">No Spoons checked in yet — be first!</span></div>`;
+    : `<div class="whos-here"><span style="color:#ddd">No Spoons checked in yet â be first!</span></div>`;
 
   let spoonBtn = '';
   if (currentUser) {
-    if (checkedHere) spoonBtn = `<button class="spoon-in-btn checked-in" onclick="spoonOut()">Spoon out — leaving ${r.name}</button>`;
+    if (checkedHere) spoonBtn = `<button class="spoon-in-btn checked-in" onclick="spoonOut()">Spoon out â leaving ${r.name}</button>`;
     else if (checkedElsew) {
       const el = RESTAURANTS.find(x=>x.id===currentUser.checkedInAt);
       spoonBtn = `<button class="spoon-in-btn elsewhere">Spoon in</button>
-        <div class="elsewhere-note">You're at ${el.name}. <span onclick="spoonOut();openPanel(${id})">Spoon out first →</span></div>`;
-    } else spoonBtn = `<button class="spoon-in-btn" onclick="spoonIn(${id})">Spoon in 🥄</button>`;
+        <div class="elsewhere-note">You're at ${el.name}. <span onclick="spoonOut();openPanel(${id})">Spoon out first â</span></div>`;
+    } else spoonBtn = `<button class="spoon-in-btn" onclick="spoonIn(${id})">Spoon in ð¥</button>`;
   }
 
   const reviewsHtml = r.reviews.map(rv=>`
@@ -795,8 +932,37 @@ function renderPanel(id) {
       ${rv.tags?`<div class="review-tags">${rv.tags.map(t=>`<span class="review-tag">${t}</span>`).join('')}</div>`:''}
       <div class="review-text">${rv.text}</div>
       ${rv.mustOrder?`<div class="review-must">Must order: <strong>${rv.mustOrder}</strong></div>`:''}
-      <div class="review-date">${rv.date} · ${rv.back||''}</div>
+      <div class="review-date">${rv.date} Â· ${rv.back||''}</div>
     </div>`).join('');
+
+  // Review form: only show if logged in and hasn't already reviewed
+  const userReview = currentUser ? r.reviews.find(rv=>rv.author===currentUser.name) : null;
+  const reviewFormHtml = currentUser && !userReview ? `
+    <div class="panel-review-section">
+      <div class="section-label">Leave your review</div>
+      <div class="rate-form" id="panelReviewForm_${id}">
+        <div>
+          <label class="form-label">Spoon rating</label>
+          <div class="spoon-picker-row" id="panelSpoonRow_${id}">
+            ${[1,2,3,4,5].map(i=>`<button class="spoon-pick-btn" onclick="pickPanelSpoons(${i},${id})">${spoonSVG('#111',26,false)}</button>`).join('')}
+            <span class="spoon-rating-desc" id="panelSpoonDesc_${id}">tap to rate</span>
+          </div>
+        </div>
+        <div>
+          <label class="form-label">Your take</label>
+          <textarea class="form-textarea" id="panelReviewText_${id}" placeholder="What made it worth visiting?"></textarea>
+        </div>
+        <div>
+          <label class="form-label">Must order</label>
+          <input class="form-input" id="panelMust_${id}" placeholder="The thing everyone has to getâ¦"/>
+        </div>
+        <div>
+          <label class="form-label">The vibe</label>
+          <div class="chips" id="panelVibeChips_${id}">${['Cosy','Buzzy','Fancy','Hidden gem','Romantic','Lively'].map(t=>`<div class="chip" onclick="toggleChip(this,'panelVibe')">${t}</div>`).join('')}</div>
+        </div>
+        <button class="btn-submit" onclick="submitPanelReview(${id})">Drop your review ð¥</button>
+      </div>
+    </div>` : userReview ? `<div class="already-reviewed">You've reviewed this spot â</div>` : '';
 
   return `
     <div class="panel-category">${r.category}</div>
@@ -806,35 +972,173 @@ function renderPanel(id) {
       <span style="display:flex;gap:2px">${spoonRow(r.spoons,21,'#111')}</span>
       <span class="rating-meta">${r.totalRatings} Spoons rated</span>
     </div>
-    <div class="panel-photo">📸 photos from Spoons</div>
+    <div class="panel-photo">ð¸ photos from Spoons</div>
     ${whoHtml}
     ${spoonBtn}
     <button class="chat-btn" onclick="openChatModal(${r.id})">Chat with Spoons <div class="live-badge"><div class="live-dot"></div>LIVE</div></button>
     <div class="section-label">What Spoons are saying</div>
-    ${reviewsHtml}`;
+    ${reviewsHtml}
+    ${reviewFormHtml}`;
 }
 
-// ── SPOON IN / OUT ──
+// ââ SPOON IN / OUT ââ
 function spoonIn(id) {
   if (!currentUser) return;
   currentUser.checkedInAt = id;
   const r = RESTAURANTS.find(x=>x.id===id);
-  document.getElementById('headerLoc').textContent = '📍 '+r.name;
+  document.getElementById('headerLoc').textContent = 'ð '+r.name;
+  // Show check-in indicator in header
+  document.getElementById('checkinText').textContent = r.name;
+  document.getElementById('checkinIndicator').classList.add('visible');
   refreshMarker(id);
   openPanel(id);
   openChatModal(id);
-  toast(`You're in at ${r.name} 🥄`);
+  toast(`You're in at ${r.name} ð¥`);
 }
 function spoonOut() {
   if (!currentUser||!currentUser.checkedInAt) return;
+  // Show review modal before completing checkout
+  openReviewModal(currentUser.checkedInAt);
+}
+function completeSpoonOut() {
+  if (!currentUser || !currentUser.checkedInAt) return;
   const prev = currentUser.checkedInAt;
   currentUser.checkedInAt = null;
   document.getElementById('headerLoc').textContent = 'not checked in';
+  document.getElementById('checkinIndicator').classList.remove('visible');
   refreshMarker(prev);
   if (activePanelId===prev) openPanel(prev);
 }
 
-// ── CHAT MODAL ──
+// ââ REVIEW MODAL ââ
+let reviewModalTargetId = null;
+let reviewSelectedSpoons = 0;
+
+function openReviewModal(id) {
+  reviewModalTargetId = id;
+  reviewSelectedSpoons = 0;
+  const r = RESTAURANTS.find(x=>x.id===id);
+  document.getElementById('reviewModalTitle').textContent = `How was ${r.name}? ð¥`;
+  document.getElementById('reviewModalForm').innerHTML = `
+    <div>
+      <label class="form-label">Spoon rating</label>
+      <div class="spoon-picker-row" id="reviewSpoonRow">
+        ${[1,2,3,4,5].map(i=>`<button class="spoon-pick-btn" onclick="pickReviewSpoons(${i})">${spoonSVG('#111',26,false)}</button>`).join('')}
+        <span class="spoon-rating-desc" id="reviewSpoonDesc">tap to rate</span>
+      </div>
+    </div>
+    <div>
+      <label class="form-label">Your take</label>
+      <textarea class="form-textarea" id="reviewText" placeholder="What made it worth visiting? Be real."></textarea>
+    </div>
+    <div>
+      <label class="form-label">Must order</label>
+      <input class="form-input" id="reviewMust" placeholder="The dish everyone has to getâ¦"/>
+    </div>
+    <div>
+      <label class="form-label">Worth the wait?</label>
+      <div class="chips" id="reviewWaitChips">${['Zero queue','Moved fast','Painful but worth it','Never again'].map(t=>`<div class="chip" onclick="toggleChip(this,'reviewWait')">${t}</div>`).join('')}</div>
+    </div>
+    <div>
+      <label class="form-label">Wallet check</label>
+      <div class="chips" id="reviewWalletChips">${['Steal ð¤','Fair','Felt it','Ouch ð¸'].map(t=>`<div class="chip" onclick="toggleChip(this,'reviewWallet')">${t}</div>`).join('')}</div>
+    </div>
+    <div>
+      <label class="form-label">The vibe</label>
+      <div class="chips" id="reviewVibeChips">${['Cosy','Buzzy','Fancy','Hidden gem','Romantic','Lively'].map(t=>`<div class="chip" onclick="toggleChip(this,'reviewVibe')">${t}</div>`).join('')}</div>
+    </div>
+    <div>
+      <label class="form-label">Coming back?</label>
+      <div class="chips" id="reviewBackChips">${['Already booked','Definitely','Maybe','Never again'].map(t=>`<div class="chip" onclick="toggleChip(this,'reviewBack')">${t}</div>`).join('')}</div>
+    </div>
+    <button class="btn-submit" onclick="submitSpoonOutReview()">Drop your review ð¥</button>
+    <button class="review-skip" onclick="skipReview()">Skip â just check out</button>
+  `;
+  document.getElementById('reviewOverlay').classList.add('open');
+}
+
+function closeReviewModal() {
+  document.getElementById('reviewOverlay').classList.remove('open');
+}
+
+function pickReviewSpoons(n) {
+  reviewSelectedSpoons = n;
+  document.querySelectorAll('#reviewSpoonRow .spoon-pick-btn').forEach((b,i)=>b.classList.toggle('lit',i<n));
+  document.getElementById('reviewSpoonDesc').textContent = SPOON_DESCS[n];
+}
+
+function submitSpoonOutReview() {
+  const r = RESTAURANTS.find(x=>x.id===reviewModalTargetId);
+  if (r) {
+    const text = document.getElementById('reviewText').value.trim();
+    const must = document.getElementById('reviewMust').value.trim();
+    const waitChip = document.querySelector('#reviewWaitChips .chip.selected');
+    const walletChip = document.querySelector('#reviewWalletChips .chip.selected');
+    const vibeChips = [...document.querySelectorAll('#reviewVibeChips .chip.selected')].map(c=>c.textContent);
+    const backChip = document.querySelector('#reviewBackChips .chip.selected');
+
+    if (reviewSelectedSpoons > 0 || text) {
+      const tags = [waitChip?.textContent, walletChip?.textContent, ...vibeChips].filter(Boolean);
+      r.reviews.unshift({
+        author: currentUser.name,
+        spoons: reviewSelectedSpoons || 3,
+        text: text || 'Was here!',
+        tags,
+        mustOrder: must || undefined,
+        back: backChip?.textContent,
+        date: 'Just now'
+      });
+      // Update aggregate rating
+      if (reviewSelectedSpoons > 0) {
+        const newTotal = r.totalRatings + 1;
+        r.spoons = Math.round((r.spoons * r.totalRatings + reviewSelectedSpoons) / newTotal);
+        r.totalRatings = newTotal;
+      }
+      r.daily++;  r.weekly++;  r.monthly++;
+      toast(`Review dropped for ${r.name} ð¥`);
+    }
+  }
+  closeReviewModal();
+  completeSpoonOut();
+}
+
+function skipReview() {
+  closeReviewModal();
+  completeSpoonOut();
+}
+
+// ââ PANEL INLINE REVIEW ââ
+let panelSelectedSpoons = {};
+function pickPanelSpoons(n, id) {
+  panelSelectedSpoons[id] = n;
+  document.querySelectorAll(`#panelSpoonRow_${id} .spoon-pick-btn`).forEach((b,i)=>b.classList.toggle('lit',i<n));
+  document.getElementById(`panelSpoonDesc_${id}`).textContent = SPOON_DESCS[n];
+}
+function submitPanelReview(id) {
+  const r = RESTAURANTS.find(x=>x.id===id);
+  if (!r || !currentUser) return;
+  const spoons = panelSelectedSpoons[id] || 3;
+  const text = document.getElementById(`panelReviewText_${id}`)?.value.trim() || 'Was here!';
+  const must = document.getElementById(`panelMust_${id}`)?.value.trim();
+  const vibeChips = [...(document.querySelectorAll(`#panelVibeChips_${id} .chip.selected`)||[])].map(c=>c.textContent);
+  r.reviews.unshift({
+    author: currentUser.name,
+    spoons,
+    text,
+    tags: vibeChips,
+    mustOrder: must || undefined,
+    date: 'Just now'
+  });
+  const newTotal = r.totalRatings + 1;
+  r.spoons = Math.round((r.spoons * r.totalRatings + spoons) / newTotal);
+  r.totalRatings = newTotal;
+  delete panelSelectedSpoons[id];
+  refreshMarker(id);
+  openPanel(id);
+  toast('Review dropped! ð¥');
+}
+
+// ââ CHAT MODAL ââ
 function openChatModal(id) {
   const r = RESTAURANTS.find(x=>x.id===id);
   const checkedHere = currentUser && currentUser.checkedInAt===id;
@@ -846,10 +1150,10 @@ function openChatModal(id) {
     body.innerHTML = `
       <div class="chat-messages" id="chatMessages">
         ${r.chats.map(m=>`<div class="msg-wrap"><div class="msg-author-row"><div class="msg-author-dot" style="background:${m.color}">${m.author[0]}</div><span class="msg-author">${m.author}</span></div><div class="msg-bubble">${m.text}</div><span class="msg-time">${m.time}</span></div>`).join('')}
-        <div class="msg-system">You Spooned in 🥄 Ask away!</div>
+        <div class="msg-system">You Spooned in ð¥ Ask away!</div>
       </div>
       <div class="chat-input-row">
-        <input class="chat-input" id="chatInput" placeholder="Ask the Spoons anything…" onkeydown="if(event.key==='Enter')sendMsg()"/>
+        <input class="chat-input" id="chatInput" placeholder="Ask the Spoons anythingâ¦" onkeydown="if(event.key==='Enter')sendMsg()"/>
         <button class="chat-send" onclick="sendMsg()">Send</button>
       </div>`;
     document.getElementById('chatMessages').scrollTop = 99999;
@@ -859,8 +1163,8 @@ function openChatModal(id) {
       <p>Spoon in to join the chat</p>
       <small>You need to be at <strong>${r.name}</strong><br>to chat with the Spoons here.</small><br>
       ${currentUser?(currentUser.checkedInAt
-        ?`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="spoonOut();spoonIn(${id})">Switch here 🥄</button>`
-        :`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="closeChatModal();spoonIn(${id})">Spoon in 🥄</button>`):''}
+        ?`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="spoonOut();spoonIn(${id})">Switch here ð¥</button>`
+        :`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="closeChatModal();spoonIn(${id})">Spoon in ð¥</button>`):''}
     </div>`;
   }
   document.getElementById('chatOverlay').classList.add('open');
@@ -876,17 +1180,18 @@ function sendMsg() {
   inp.value=''; el.scrollTop=99999;
 }
 
-// ── TOAST ──
+// ââ TOAST ââ
 function toast(msg) {
   const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
   document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
 }
 
-// ── INIT ──
+// ââ INIT ââ
 buildColorGrid();
 updatePreview();
 initMap();
 renderRankings();
-</script>
+initPanelState();
+ </script>
 </body>
 </html>
