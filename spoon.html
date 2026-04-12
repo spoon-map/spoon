@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spoon â Skip the algorithm. Trust a Spoon.</title>
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+  <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -109,14 +109,19 @@
     }
     .left-panel-close:hover { color:#111; }
 
-    /* Mobile: panel starts hidden, floats over map */
+    /* Mobile: panel floats over full-width map */
     @media(max-width:700px) {
       #map { left:0 !important; }
-      .left-panel { box-shadow:4px 0 16px rgba(0,0,0,0.15); z-index:800; }
-      .panel-toggle-btn { top:auto; bottom:24px; left:12px; width:44px; height:44px;
-        border:1.5px solid #111; border-radius:50%; box-shadow:2px 2px 0 #111;
-        font-size:18px; background:#fff; }
-      .panel-toggle-btn.hidden { left:12px; border:1.5px solid #111; }
+      .left-panel { box-shadow:4px 0 20px rgba(0,0,0,0.18); z-index:800; }
+      /* Toggle btn: always a floating circle bottom-left, never hidden */
+      .panel-toggle-btn {
+        position:fixed !important; top:auto !important; bottom:24px !important;
+        left:14px !important; width:46px !important; height:46px !important;
+        border:1.5px solid #111 !important; border-radius:50% !important;
+        box-shadow:3px 3px 0 #111 !important; font-size:20px !important;
+        background:#fff !important; z-index:900 !important;
+      }
+      .panel-toggle-btn.hidden { /* still visible as floating btn */ }
       .side-panel { width:100% !important; right:-100% !important; }
       .side-panel.open { right:0 !important; }
     }
@@ -247,23 +252,37 @@
     .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:2000; display:none; align-items:center; justify-content:center; }
     .modal-overlay.open { display:flex; }
 
-    /* ââ ONBOARDING ââ */
-    .onboard-modal { background:#fff; border:1.5px solid #111; box-shadow:6px 6px 0 #111; width:400px; max-width:95vw; padding:34px 30px; }
-    .onboard-logo { font-family:'Caveat',cursive; font-size:46px; font-weight:700; line-height:1; margin-bottom:4px; }
-    .onboard-tagline { font-size:12px; color:#888; margin-bottom:28px; }
-    .onboard-label { font-size:10px; font-weight:500; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:7px; }
-    .onboard-input { width:100%; border:1px solid #ddd; padding:10px 13px; font-family:'Inter',sans-serif; font-size:14px; outline:none; margin-bottom:20px; }
-    .onboard-input:focus { border-color:#111; }
-    .color-grid { display:flex; gap:9px; flex-wrap:wrap; margin-bottom:22px; }
+    /* ââ AUTH MODAL ââ */
+    .auth-modal { background:#fff; border:1.5px solid #111; box-shadow:6px 6px 0 #111; width:420px; max-width:96vw; padding:36px 30px 30px; }
+    .auth-logo { font-family:'Caveat',cursive; font-size:46px; font-weight:700; line-height:1; margin-bottom:3px; }
+    .auth-tagline { font-size:12px; color:#888; margin-bottom:26px; }
+    .auth-tabs { display:flex; gap:0; border:1.5px solid #111; margin-bottom:24px; }
+    .auth-tab { flex:1; padding:9px 0; font-family:'Caveat',cursive; font-size:17px; cursor:pointer; background:#fff; color:#aaa; border:none; transition:all 0.1s; }
+    .auth-tab.active { background:#111; color:#fff; }
+    .auth-label { font-size:10px; font-weight:500; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:7px; color:#888; }
+    .auth-input { width:100%; border:1px solid #ddd; padding:10px 13px; font-family:'Inter',sans-serif; font-size:14px; outline:none; margin-bottom:14px; }
+    .auth-input:focus { border-color:#111; }
+    .auth-btn { width:100%; background:#111; color:#fff; border:none; padding:13px; font-family:'Caveat',cursive; font-size:19px; cursor:pointer; margin-bottom:12px; }
+    .auth-btn:hover { background:#333; }
+    .auth-btn:disabled { background:#ccc; cursor:not-allowed; }
+    .auth-divider { display:flex; align-items:center; gap:10px; margin:14px 0; color:#ccc; font-size:12px; }
+    .auth-divider::before, .auth-divider::after { content:''; flex:1; border-top:1px solid #eee; }
+    .auth-google-btn { width:100%; background:#fff; border:1.5px solid #ddd; padding:11px; font-family:'Inter',sans-serif; font-size:14px; font-weight:500; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; transition:border-color 0.1s; }
+    .auth-google-btn:hover { border-color:#111; }
+    .auth-error { font-size:13px; color:#c00; margin-bottom:12px; display:none; background:#fff5f5; padding:8px 11px; border-left:3px solid #c00; }
+    .auth-error.visible { display:block; }
+    /* Color picker (signup) */
+    .color-grid { display:flex; gap:9px; flex-wrap:wrap; margin-bottom:20px; }
     .color-swatch { width:34px; height:34px; border-radius:50%; cursor:pointer; border:2.5px solid transparent; transition:transform 0.1s, border-color 0.1s; }
     .color-swatch:hover { transform:scale(1.1); }
     .color-swatch.selected { border-color:#111; transform:scale(1.12); }
-    .spoon-preview-row { display:flex; align-items:center; gap:16px; padding:16px; border:1px solid #eee; margin-bottom:22px; }
+    .spoon-preview-row { display:flex; align-items:center; gap:16px; padding:14px; border:1px solid #eee; margin-bottom:20px; }
     .preview-spoon-wrap { width:26px; }
     .preview-text { font-family:'Caveat',cursive; font-size:15px; color:#888; }
     .preview-name { font-family:'Caveat',cursive; font-size:19px; font-weight:600; }
-    .btn-start { width:100%; background:#111; color:#fff; border:none; padding:13px; font-family:'Caveat',cursive; font-size:19px; cursor:pointer; }
-    .btn-start:hover { background:#333; }
+    /* Logout button in header */
+    .logout-btn { font-size:12px; color:#aaa; background:none; border:none; cursor:pointer; padding:0 4px; }
+    .logout-btn:hover { color:#111; }
 
     /* ââ CHAT MODAL ââ */
     .chat-modal { background:#fff; border:1.5px solid #111; box-shadow:5px 5px 0 #111; width:420px; max-width:95vw; height:560px; display:flex; flex-direction:column; }
@@ -294,8 +313,8 @@
     .toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:#111; color:#fff; padding:12px 22px; font-family:'Caveat',cursive; font-size:17px; z-index:9999; box-shadow:3px 3px 0 #555; animation:fadeUp 0.2s ease; }
     @keyframes fadeUp { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
 
-    .mapboxgl-ctrl-attrib { font-size:9px !important; }
-    .mapboxgl-ctrl-logo { display:none !important; }
+    .maplibregl-ctrl-attrib { font-size:9px !important; }
+    .maplibregl-ctrl-logo { display:none !important; }
 
     /* ââ CHECK-IN INDICATOR ââ */
     .checkin-indicator {
@@ -432,34 +451,70 @@
   </div>
 </div>
 
-<!-- ââ ONBOARDING ââ -->
-<div class="modal-overlay open" id="onboardOverlay">
-  <div class="onboard-modal">
-    <div class="onboard-logo">Spoon</div>
-    <div class="onboard-tagline">Skip the algorithm. Trust a Spoon.</div>
-    <label class="onboard-label">Your name</label>
-    <input class="onboard-input" id="onboardName" placeholder="e.g. Mia" oninput="updatePreview()"/>
-    <label class="onboard-label">Pick your spoon colour</label>
-    <div class="color-grid" id="colorGrid"></div>
-    <div class="spoon-preview-row">
-      <div class="preview-spoon-wrap" id="previewSpoon"></div>
-      <div>
-        <div class="preview-text">Your Spoon is</div>
-        <div class="preview-name" id="previewName">waitingâ¦</div>
-      </div>
+<!-- ââ AUTH MODAL ââ -->
+<div class="modal-overlay open" id="authOverlay">
+  <div class="auth-modal">
+    <div class="auth-logo">Spoon</div>
+    <div class="auth-tagline">Skip the algorithm. Trust a Spoon.</div>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Log in</button>
+      <button class="auth-tab" id="tabSignup" onclick="switchAuthTab('signup')">Sign up</button>
     </div>
-    <button class="btn-start" onclick="startExploring()">Start exploring Brisbane ð¥</button>
+
+    <div id="authError" class="auth-error"></div>
+
+    <!-- LOGIN FORM -->
+    <div id="authLoginForm">
+      <label class="auth-label">Email</label>
+      <input class="auth-input" id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email"/>
+      <label class="auth-label">Password</label>
+      <input class="auth-input" id="loginPassword" type="password" placeholder="â¢â¢â¢â¢â¢â¢â¢â¢" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')loginWithEmail()"/>
+      <button class="auth-btn" id="loginBtn" onclick="loginWithEmail()">Log in ð¥</button>
+      <div class="auth-divider">or</div>
+      <button class="auth-google-btn" onclick="loginWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div id="authSignupForm" style="display:none">
+      <label class="auth-label">Your name</label>
+      <input class="auth-input" id="signupName" placeholder="e.g. Mia" oninput="updateSignupPreview()"/>
+      <label class="auth-label">Email</label>
+      <input class="auth-input" id="signupEmail" type="email" placeholder="you@example.com" autocomplete="email"/>
+      <label class="auth-label">Password</label>
+      <input class="auth-input" id="signupPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"/>
+      <label class="auth-label">Pick your spoon colour</label>
+      <div class="color-grid" id="colorGrid"></div>
+      <div class="spoon-preview-row">
+        <div class="preview-spoon-wrap" id="previewSpoon"></div>
+        <div>
+          <div class="preview-text">Your Spoon is</div>
+          <div class="preview-name" id="previewName">waitingâ¦</div>
+        </div>
+      </div>
+      <button class="auth-btn" id="signupBtn" onclick="signupWithEmail()">Create account ð¥</button>
+      <div class="auth-divider">or</div>
+      <button class="auth-google-btn" onclick="loginWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+    </div>
+
   </div>
 </div>
 
 <script>
-// ââ MAPBOX + SUPABASE TOKENS ââ
-const MAPBOX_TOKEN = 'pk.eyJ1Ijoic3Bvb24tbWFwIiwiYSI6ImNtbm9obXBzaDI3NnQyb29vZWNkZjR5ZXgifQ.1bWimnUpLzKrh5_vT1n9Eg';
+// ââ SUPABASE TOKENS ââ
 const SUPABASE_URL  = 'https://ipjzirxltkfbmckekcig.supabase.co';
 const SUPABASE_KEY  = 'sb_publishable_QCYHnZWtiKbt9xjU4Jc8Ig_k097jxva';
 let db = null; // initialised after supabase CDN loads
 </script>
-<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 
@@ -577,9 +632,11 @@ let searchResults = [];
 let dropdownVisible = false;
 let selectedResultIndex = -1;
 
-// ââ ONBOARDING ââ
+// ââ AUTH ââ
 function buildColorGrid() {
   const grid = document.getElementById('colorGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
   COLORS.forEach((c,i) => {
     const el = document.createElement('div');
     el.className = 'color-swatch'+(i===0?' selected':'');
@@ -588,24 +645,129 @@ function buildColorGrid() {
       selectedColor = c;
       document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));
       el.classList.add('selected');
-      updatePreview();
+      updateSignupPreview();
     };
     grid.appendChild(el);
   });
 }
-function updatePreview() {
-  const name = document.getElementById('onboardName').value.trim();
-  document.getElementById('previewSpoon').innerHTML = spoonSVG(selectedColor, 62, true);
-  document.getElementById('previewName').textContent = name || 'waitingâ¦';
+function updateSignupPreview() {
+  const name = document.getElementById('signupName')?.value.trim();
+  const ps = document.getElementById('previewSpoon');
+  const pn = document.getElementById('previewName');
+  if (ps) ps.innerHTML = spoonSVG(selectedColor, 62, true);
+  if (pn) pn.textContent = name || 'waitingâ¦';
 }
-function startExploring() {
-  const name = document.getElementById('onboardName').value.trim();
-  if (!name) { document.getElementById('onboardName').focus(); return; }
-  currentUser = { name, color:selectedColor, checkedInAt:null };
-  document.getElementById('headerSpoon').innerHTML = spoonSVG(selectedColor, 36, false);
-  document.getElementById('headerName').textContent = name;
+function switchAuthTab(tab) {
+  document.getElementById('authLoginForm').style.display = tab==='login'?'block':'none';
+  document.getElementById('authSignupForm').style.display = tab==='signup'?'block':'none';
+  document.getElementById('tabLogin').classList.toggle('active', tab==='login');
+  document.getElementById('tabSignup').classList.toggle('active', tab==='signup');
+  document.getElementById('authError').classList.remove('visible');
+  if (tab==='signup') { buildColorGrid(); updateSignupPreview(); }
+}
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg; el.classList.add('visible');
+}
+function setAuthLoading(loading) {
+  document.getElementById('loginBtn').disabled = loading;
+  document.getElementById('signupBtn').disabled = loading;
+}
+async function loginWithEmail() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPassword').value;
+  if (!email||!pass) { showAuthError('Enter your email and password.'); return; }
+  setAuthLoading(true);
+  document.getElementById('authError').classList.remove('visible');
+  try {
+    if (db) {
+      const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+      if (error) throw error;
+      const meta = data.user?.user_metadata || {};
+      enterApp(meta.name||email.split('@')[0], meta.color||COLORS[0]);
+    } else {
+      // Supabase not available â use localStorage fallback
+      const stored = JSON.parse(localStorage.getItem('spoon_user')||'null');
+      if (stored && stored.email===email) { enterApp(stored.name, stored.color); }
+      else { throw new Error('Account not found. Sign up first.'); }
+    }
+  } catch(e) {
+    showAuthError(e.message||'Login failed.');
+  }
+  setAuthLoading(false);
+}
+async function signupWithEmail() {
+  const name  = document.getElementById('signupName').value.trim();
+  const email = document.getElementById('signupEmail').value.trim();
+  const pass  = document.getElementById('signupPassword').value;
+  if (!name)  { showAuthError('Enter your name.'); return; }
+  if (!email) { showAuthError('Enter your email.'); return; }
+  if (pass.length<6) { showAuthError('Password must be at least 6 characters.'); return; }
+  setAuthLoading(true);
+  document.getElementById('authError').classList.remove('visible');
+  try {
+    if (db) {
+      const { data, error } = await db.auth.signUp({
+        email, password: pass,
+        options: { data: { name, color: selectedColor } }
+      });
+      if (error) throw error;
+      // Some Supabase projects require email confirmation
+      if (data.user && !data.session) {
+        showAuthError('Check your email to confirm your account, then log in!');
+        setAuthLoading(false);
+        switchAuthTab('login');
+        return;
+      }
+      enterApp(name, selectedColor);
+    } else {
+      localStorage.setItem('spoon_user', JSON.stringify({ name, email, color: selectedColor }));
+      enterApp(name, selectedColor);
+    }
+  } catch(e) {
+    showAuthError(e.message||'Sign up failed.');
+  }
+  setAuthLoading(false);
+}
+async function loginWithGoogle() {
+  if (!db) { showAuthError('Google login requires Supabase setup. Use email/password instead.'); return; }
+  try {
+    const { error } = await db.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.href }
+    });
+    if (error) throw error;
+  } catch(e) {
+    showAuthError('Google login failed: '+e.message);
+  }
+}
+async function logoutUser() {
+  if (db) await db.auth.signOut();
+  localStorage.removeItem('spoon_user');
+  currentUser = null;
+  document.getElementById('userPill').style.display = 'none';
+  document.getElementById('checkinIndicator').classList.remove('visible');
+  document.getElementById('authOverlay').classList.add('open');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPassword').value = '';
+}
+function enterApp(name, color) {
+  currentUser = { name, color, checkedInAt:null };
+  selectedColor = color;
+  document.getElementById('headerSpoon').innerHTML = spoonSVG(color, 36, false);
+  document.getElementById('headerName').innerHTML = name + ' <button class="logout-btn" onclick="logoutUser()" title="Log out">â©</button>';
   document.getElementById('userPill').style.display = 'flex';
-  document.getElementById('onboardOverlay').classList.remove('open');
+  document.getElementById('authOverlay').classList.remove('open');
+}
+async function checkExistingSession() {
+  if (!db) return;
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    if (session?.user) {
+      const meta = session.user.user_metadata || {};
+      enterApp(meta.name||session.user.email?.split('@')[0]||'Spoon', meta.color||COLORS[0]);
+    }
+  } catch(e) { /* no session */ }
 }
 
 // ââ RANKINGS ââ
@@ -650,10 +812,16 @@ async function onSearchInput(val) {
         r.category.toLowerCase().includes(val.toLowerCase())
       );
 
-      // Query Mapbox Geocoding for Brisbane POIs
-      const mbUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(val)}.json?proximity=153.0251,-27.4698&country=AU&types=poi&limit=6&access_token=${MAPBOX_TOKEN}`;
-      const res = await fetch(mbUrl);
-      const data = await res.json();
+      // Query Nominatim geocoding for Brisbane POIs (free, no token)
+      const nmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}+Brisbane&format=json&limit=6&countrycodes=au&addressdetails=1`;
+      const res = await fetch(nmUrl, { headers: { 'Accept-Language': 'en' } });
+      const nmData = await res.json();
+      const data = { features: nmData.map(f => ({
+        text: f.display_name.split(',')[0],
+        place_name: f.display_name,
+        center: [parseFloat(f.lon), parseFloat(f.lat)],
+        properties: { category: f.type||'' }
+      })) };
 
       searchResults = [];
       let html = '';
@@ -676,7 +844,7 @@ async function onSearchInput(val) {
         const addr = f.place_name.split(',').slice(1,3).join(',').trim();
         const rawCat = f.properties?.category || '';
         const type = rawCat ? rawCat.split(',')[0].charAt(0).toUpperCase()+rawCat.split(',')[0].slice(1) : 'Place';
-        searchResults.push({ type:'mapbox', name, addr, lat:f.center[1], lng:f.center[0], placeType:type });
+        searchResults.push({ type:'new', name, addr, lat:f.center[1], lng:f.center[0], placeType:type });
         html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
           <span class="search-result-name search-new">${name}</span>
           <span class="search-result-addr">${addr}</span>
@@ -831,21 +999,19 @@ function toggleChip(el, group) {
 let map, mapMarkers = {};
 
 function initMap() {
-  // Set token right before use (after CDN is guaranteed loaded)
-  mapboxgl.accessToken = MAPBOX_TOKEN;
-
   // Init Supabase client
   if (typeof supabase !== 'undefined') {
     db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    checkExistingSession();
   }
 
-  map = new mapboxgl.Map({
+  map = new maplibregl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/light-v11',
+    style: 'https://tiles.openfreemap.org/styles/positron',
     center: [153.022, -27.468],
     zoom: 13
   });
-  map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+  map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
   map.on('load', () => {
     RESTAURANTS.forEach(r => addMarker(r));
   });
@@ -876,7 +1042,7 @@ function addMarker(r) {
   const el = document.createElement('div');
   el.innerHTML = makeMarkerHTML(r, false);
   el.querySelector('.marker-wrap').addEventListener('click', () => openPanel(r.id));
-  const marker = new mapboxgl.Marker({ element: el, anchor: 'top-left' })
+  const marker = new maplibregl.Marker({ element: el, anchor: 'top-left' })
     .setLngLat([r.lng, r.lat])
     .addTo(map);
   mapMarkers[r.id] = { marker, el };
@@ -1187,8 +1353,6 @@ function toast(msg) {
 }
 
 // ââ INIT ââ
-buildColorGrid();
-updatePreview();
 initMap();
 renderRankings();
 initPanelState();
