@@ -355,7 +355,7 @@
     .maplibregl-ctrl-attrib { font-size:9px !important; }
     .maplibregl-ctrl-logo { display:none !important; }
 
-    /* &#x2500;&#x2500; CHECK-IN INDICATOR &#x2500;&#x2500; */
+    /* &#x2500;&#x2500; CHECK-BI NDICATOR &#x2500;&#x2500; */
     .checkin-indicator {
       display:none; align-items:center; gap:7px;
       background:#111; color:#fff;
@@ -376,7 +376,7 @@
     .review-skip:hover { color:#666; text-decoration:underline; }
 
     /* Active count badge on markers */
-    .active-count-badge { display:inline-flex; align-items:center; justify-content:center; background:#111; color:#fff; border-radius:20px; padding:1px 7px; font-size:11px; font-family:'Caveat',cursive; font-weight:700; margin-left:3px; }
+    .active-count-badge { display:inline-flex; align-items:centerr; justify-content:center; background:#111; color:#fff; border-radius:20px; padding:1px 7px; font-size:11px; font-family:'Caveat',cursive; font-weight:700; margin-left:3px; }
 
     /* Panel review form */
     .panel-review-section { margin-top:20px; border-top:1px solid #eee; padding-top:16px; }
@@ -429,7 +429,7 @@
     </div>
   </div>
   <!-- Row 2: mobile search bar -->
-  <div class="search-wrap search-wrap-mobile" style="display:none">
+  <div class="search-wrap search-wrap-mobile">
     <span class="search-icon">&#128269;</span>
     <input class="search-input" id="searchInputMobile" placeholder="Search restaurants &amp; caf&#233;s&#8230;" autocomplete="off"
       oninput="onSearchInput(this.value,'searchDropdownMobile')" onblur="hideDropdownDelayed('searchDropdownMobile')" onkeydown="searchKeydown(event,'searchDropdownMobile')"/>
@@ -602,7 +602,7 @@ const RESTAURANTS = [
   { id:1, name:"Greca", category:"Greek", address:"Howard Smith Wharves, Brisbane City", lat:-27.4569, lng:153.0359, spoons:5, totalRatings:47, daily:12, weekly:67, monthly:245,
     reviews:[
       {author:"Mia",spoons:5,text:"The lamb shoulder is genuinely one of the best things I've eaten in Brisbane.",tags:["Worth it","Felt it","Fancy","Romantic"],mustOrder:"Lamb shoulder",back:"Already booked",date:"2 days ago"},
-      {author:"Sophie",spoons;5,text:"Book ahead! Dips platter is non-negotiable.",tags:["Painful but worth it","Fair","Buzzy"],mustOrder:"Dips platter",back:"Definitely",date:"1 week ago"}
+      {author:"Sophie",spoons:5,text:"Book ahead! Dips platter is non-negotiable.",tags:["Painful but worth it","Fair","Buzzy"],mustOrder:"Dips platter",back:"Definitely",date:"1 week ago"}
     ],
     chats:[{author:"Mia",color:"#FF8B8B",text:"Just finished lunch \u2014 no wait right now!",time:"12:34"},{author:"Sophie",color:"#C3A8D8",text:"Is the lamb shoulder still on?",time:"12:41"},{author:"Mia",color:"#FF8B8B",text:"Yes!! They still have it \uD83D\uDE4C",time:"12:42"}]
   },
@@ -755,21 +755,33 @@ async function loginWithEmail() {
   if (!email||!pass) { showAuthError('Enter your email and password.'); return; }
   setAuthLoading(true);
   document.getElementById('authError').classList.remove('visible');
-  try {
-    if (db) {
+
+  // Try Supabase first; fall back to localStorage on any failure
+  let loggedIn = false;
+  if (db) {
+    try {
       const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
-      if (error) throw error;
-      const meta = data.user?.user_metadata || {};
-      enterApp(meta.name||email.split('@')[0], meta.color||COLORS[0]);
-    } else {
-      // Supabase not available \u2014 use localStorage fallback
-      const stored = JSON.parse(localStorage.getItem('spoon_user')||'null');
-      if (stored && stored.email===email) { enterApp(stored.name, stored.color); }
-      else { throw new Error('Account not found. Sign up first.'); }
-    }
-  } catch(e) {
-    showAuthError(e.message||'Login failed.');
+      if (!error && data.user) {
+        const meta = data.user.user_metadata || {};
+        enterApp(meta.name||email.split('@')[0], meta.color||COLORS[0]);
+        loggedIn = true;
+      }
+    } catch(e) { /* fall through to localStorage */ }
   }
+
+  if (!loggedIn) {
+    // localStorage fallback
+    const stored = JSON.parse(localStorage.getItem('spoon_user')||'null');
+    if (stored && stored.email === email) {
+      enterApp(stored.name, stored.color||COLORS[0]);
+      loggedIn = true;
+    } else if (stored && stored.email !== email) {
+      showAuthError('Wrong email. Try the one you signed up with, or sign up again.');
+    } else {
+      showAuthError('No account found. Please sign up first.');
+    }
+  }
+
   setAuthLoading(false);
 }
 async function signupWithEmail() {
@@ -781,28 +793,30 @@ async function signupWithEmail() {
   if (pass.length<6) { showAuthError('Password must be at least 6 characters.'); return; }
   setAuthLoading(true);
   document.getElementById('authError').classList.remove('visible');
-  try {
-    if (db) {
+
+  let signedUp = false;
+  if (db) {
+    try {
       const { data, error } = await db.auth.signUp({
         email, password: pass,
         options: { data: { name, color: selectedColor } }
       });
-      if (error) throw error;
-      // Some Supabase projects require email confirmation
-      if (data.user && !data.session) {
-        showAuthError('Check your email to confirm your account, then log in!');
-        setAuthLoading(false);
-        switchAuthTab('login');
-        return;
+      if (!error) {
+        if (data.user && !data.session) {
+          // Email confirmation required
+          showAuthError('Check your email to confirm your account, then log in!');
+          setAuthLoading(false);
+          switchAuthTab('login');
+          return;
+        }
+        signedUp = true;
       }
-      enterApp(name, selectedColor);
-    } else {
-      localStorage.setItem('spoon_user', JSON.stringify({ name, email, color: selectedColor }));
-      enterApp(name, selectedColor);
-    }
-  } catch(e) {
-    showAuthError(e.message||'Sign up failed.');
+    } catch(e) { /* fall through to localStorage */ }
   }
+
+  // Always save to localStorage (works offline + as session persistence)
+  localStorage.setItem('spoon_user', JSON.stringify({ name, email, color: selectedColor }));
+  enterApp(name, selectedColor);
   setAuthLoading(false);
 }
 async function loginWithGoogle() {
@@ -838,14 +852,23 @@ function enterApp(name, color) {
   document.getElementById('addPlaceFab').classList.add('visible');
 }
 async function checkExistingSession() {
-  if (!db) return;
+  if (!db) {
+    // Check localStorage session
+    const stored = JSON.parse(localStorage.getItem('spoon_user') || 'null');
+    if (stored && stored.name) enterApp(stored.name, stored.color || COLORS[0]);
+    return;
+  }
   try {
     const { data: { session } } = await db.auth.getSession();
     if (session?.user) {
       const meta = session.user.user_metadata || {};
       enterApp(meta.name||session.user.email?.split('@')[0]||'Spoon', meta.color||COLORS[0]);
+      return;
     }
-  } catch(e) { /* no session */ }
+  } catch(e) { /* fall through */ }
+  // Fallback to localStorage even when db is available
+  const stored = JSON.parse(localStorage.getItem('spoon_user') || 'null');
+  if (stored && stored.name) enterApp(stored.name, stored.color || COLORS[0]);
 }
 
 // \u2500\u2500 RANKINGS \u2500\u2500
@@ -1088,11 +1111,16 @@ function toggleChip(el, group) {
 let map, mapMarkers = {};
 
 function initMap() {
-  // Init Supabase client
+  // Init Supabase client (graceful fallback if key/network fails)
   if (typeof supabase !== 'undefined') {
-    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    checkExistingSession();
+    try {
+      db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } catch(e) {
+      db = null;
+    }
   }
+  // Check session (Supabase or localStorage)
+  checkExistingSession();
 
   map = new maplibregl.Map({
     container: 'map',
@@ -1497,7 +1525,7 @@ function renderAddPlaceForm() {
         <label class="form-label">Must order (optional)</label>
         <input class="form-input" id="apMust" placeholder="The dish everyone has to try\u2026"/>
       </div>
-      <button class="btn-submit" id="apSubmitBtn" onclick="submitAddPlace()">Add to Spoon &#129348;</button>
+      <button class="btn-submit" id="apSubmitBtn" onclick="submitAddPlace()">Add to Spoon &#129348; </button>
     </div>`;
 }
 function selectApCategory(el, cat) {
@@ -1556,18 +1584,27 @@ async function submitAddPlace() {
   apSelectedSpoons = 0;
   apSelectedCategory = '';
   closeAddPlaceModal();
-  map.flyTo({ center:[lng, lat], zoom:16 });
+  map.flyTo({ center:[long, lat], zoom:16 });
   toast('"' + name + '" is on Spoon now! &#129348;');
   setTimeout(() => openPanel(newId), 350);
 }
 
 // \u2500\u2500 TOAST \u2500\u2500
-function toast(msg) {
+.ction toast(msg) {
   const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
   document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
 }
 
 // \u2500\u2500 INIT \u2500\u2500
+// Immediately hide auth overlay if localStorage session exists (prevents flash)
+(function() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('spoon_user') || 'null');
+    if (stored && stored.name) {
+      document.getElementById('authOverlay').classList.remove('open');
+    }
+  } catch(e) {}
+})();
 initMap();
 renderRankings();
 initPanelState();
