@@ -288,11 +288,11 @@
     .form-divider { border:none; border-top:1px solid #eee; }
 
     /* &#x2500;&#x2500; MODALS &#x2500;&#x2500; */
-    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:2000; display:none; align-items:center; justify-content:center; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:2000; display:none; align-items:flex-start; justify-content:center; overflow-y:auto; padding:20px 10px; }
     .modal-overlay.open { display:flex; }
 
     /* &#x2500;&#x2500; AUTH MODAL &#x2500;&#x2500; */
-    .auth-modal { background:#fff; border:1.5px solid #111; box-shadow:6px 6px 0 #111; width:420px; max-width:96vw; padding:36px 30px 30px; }
+    .auth-modal { background:#fff; border:1.5px solid #111; box-shadow:6px 6px 0 #111; width:420px; max-width:96vw; padding:36px 30px 30px; margin:auto; }
     .auth-logo { font-family:'Caveat',cursive; font-size:46px; font-weight:700; line-height:1; margin-bottom:3px; }
     .auth-tagline { font-size:12px; color:#888; margin-bottom:26px; }
     .auth-tabs { display:flex; gap:0; border:1.5px solid #111; margin-bottom:24px; }
@@ -355,7 +355,7 @@
     .maplibregl-ctrl-attrib { font-size:9px !important; }
     .maplibregl-ctrl-logo { display:none !important; }
 
-    /* &#x2500;&#x2500; CHECK-BI NDICATOR &#x2500;&#x2500; */
+    /* &#x2500;&#x2500; CHECK-IN INDICATOR &#x2500;&#x2500; */
     .checkin-indicator {
       display:none; align-items:center; gap:7px;
       background:#111; color:#fff;
@@ -376,7 +376,7 @@
     .review-skip:hover { color:#666; text-decoration:underline; }
 
     /* Active count badge on markers */
-    .active-count-badge { display:inline-flex; align-items:centerr; justify-content:center; background:#111; color:#fff; border-radius:20px; padding:1px 7px; font-size:11px; font-family:'Caveat',cursive; font-weight:700; margin-left:3px; }
+    .active-count-badge { display:inline-flex; align-items:center; justify-content:center; background:#111; color:#fff; border-radius:20px; padding:1px 7px; font-size:11px; font-family:'Caveat',cursive; font-weight:700; margin-left:3px; }
 
     /* Panel review form */
     .panel-review-section { margin-top:20px; border-top:1px solid #eee; padding-top:16px; }
@@ -572,7 +572,7 @@
 
 <script>
 // \u2500\u2500 SUPABASE TOKENS \u2500\u2500
-const SUPABASE_URL  = 'https://ipjzirxltkfbmckekcig.supabase.co';
+const SUPABASE_URL  = 'https://ipjizrxltkfbmckekcig.supabase.co';
 const SUPABASE_KEY  = 'sb_publishable_QCYHnZWtiKbt9xjU4Jc8Ig_k097jxva';
 let db = null; // initialised after supabase CDN loads
 </script>
@@ -601,7 +601,7 @@ const SPOON_DESCS = ['','Edible','Decent','Good','Great','Unmissable'];
 const RESTAURANTS = [
   { id:1, name:"Greca", category:"Greek", address:"Howard Smith Wharves, Brisbane City", lat:-27.4569, lng:153.0359, spoons:5, totalRatings:47, daily:12, weekly:67, monthly:245,
     reviews:[
-      {author:"Mia",spoons:5,text:"The lamb shoulder is genuinely one of the best things I've eaten in Brisbane.",tags:["Worth it","Felt it","Fancy","Romantic"],mustOrder:"Lamb shoulder",back:"Already booked",date:"2 days ago"},
+      {author:"Mia",spoons:5,text:"The lamb shoulder is genuinely one of the best things I've eated in Brisbane.",tags:["Worth it","Felt it","Fancy","Romantic"],mustOrder:"Lamb shoulder",back:"Already booked",date:"2 days ago"},
       {author:"Sophie",spoons:5,text:"Book ahead! Dips platter is non-negotiable.",tags:["Painful but worth it","Fair","Buzzy"],mustOrder:"Dips platter",back:"Definitely",date:"1 week ago"}
     ],
     chats:[{author:"Mia",color:"#FF8B8B",text:"Just finished lunch \u2014 no wait right now!",time:"12:34"},{author:"Sophie",color:"#C3A8D8",text:"Is the lamb shoulder still on?",time:"12:41"},{author:"Mia",color:"#FF8B8B",text:"Yes!! They still have it \uD83D\uDE4C",time:"12:42"}]
@@ -632,7 +632,7 @@ const RESTAURANTS = [
     chats:[{author:"Hannah",color:"#C3A8D8",text:"Super busy this morning but tables clearing fast",time:"8:45"}]
   },
   { id:6, name:"Longtime", category:"Asian Fusion", address:"481 Brunswick St, Fortitude Valley", lat:-27.4576, lng:153.0395, spoons:5, totalRatings:38, daily:11, weekly:53, monthly:201,
-    reviews:[
+  2 reviews:[
       {author:"Isabelle",spoons:5,text:"Hidden gem in the Valley. South-East Asian small plates are genuinely exciting. The betel leaf bites are \uD83E\uDD24",tags:["Zero queue","Felt it","Hidden gem","Lively"],mustOrder:"Betel leaf bites",back:"Already booked",date:"5 days ago"},
       {author:"Natalie",spoons:5,text:"Incredible cocktails. Special without being stuffy.",tags:["Zero queue","Ouch \uD83D\uDCB8","Fancy","Romantic"],mustOrder:"Cocktail menu + duck",back:"Already booked",date:"1 week ago"}
     ],
@@ -964,7 +964,7 @@ async function onSearchInput(val, dropdownId) {
       const localMatches = RESTAURANTS.filter(r => r.name.toLowerCase().includes(val.toLowerCase()));
       if (localMatches.length) {
         searchResults = localMatches.map(r=>({type:'local',id:r.id}));
-        dd.innerHTML = localMatches.map((r,i)=>`
+        dd.innerHTML = localMatches.map((r,i) => `
           <div class="search-result" onclick="selectSearchResult(${i})">
             <span class="search-result-name search-in-spoon">\uD83E\uDD44 ${r.name}</span>
             <span class="search-result-addr">${r.address}</span>
@@ -979,7 +979,7 @@ async function onSearchInput(val, dropdownId) {
 function selectSearchResult(idx) {
   const r = searchResults[idx];
   document.getElementById('searchInput').value = '';
-  const _mi = document.getElementById('searchInputMobile');
+  const _mi = document.getE"entById('searchInputMobile');
   if (_mi) _mi.value = '';
   document.getElementById('searchDropdown').classList.remove('open');
   const _mdd = document.getElementById('searchDropdownMobile');
@@ -1022,7 +1022,7 @@ function renderNewPlacePanel(place) {
     <div class="panel-address">${place.addr}</div>
     <div class="new-place-banner">
       <strong>Not on Spoon yet!</strong>
-      Be the first Spoon to rate this place and put it on the map.
+    2 Be the first Spoon to rate this place and put it on the map.
     </div>
     <div class="rate-form" id="newPlaceForm">
       <div>
@@ -1038,7 +1038,7 @@ function renderNewPlacePanel(place) {
       </div>
       <div>
         <label class="form-label">Worth the wait?</label>
-        <div class="chips">${['Zero queue','Moved fast','Painful but worth it','Never again'].map(t=>`<div class="chip" onclick="toggleChip(this,'npWait')">${t}</div>`).join('')}</div>
+   2    <div class="chips">${['Zero queue','Moved fast','Painful but worth it','Never again'].map(t=>`<div class="chip" onclick="toggleChip(this,'npWait')">${t}</div>`).join('')}</div>
       </div>
       <div>
         <label class="form-label">Wallet check</label>
@@ -1198,7 +1198,7 @@ function renderPanel(id) {
   const active = getActiveHere(id);
 
   const whoHtml = active.length
-    ? `<div class="whos-here"><div class="whos-here-avatars">${active.map(u=>`<div class="avatar-dot" style="background:${u.color}">${u.name[0].toUpperCase()}</div>`).join('')}</div><span>${active.length} Spoon${active.length>1?'s':''} here right now</span></div>`
+    ? ` div class="whos-here"><div class="whos-here-avatars">${active.map(u=>`<div class="avatar-dot" style="background:${u.color}">${u.name[0].toUpperCase()}</div>`).join('')}</div><span>${active.length} Spoon${active.length>1?'s':''} here right now</span></div>`
     : `<div class="whos-here"><span style="color:#ddd">No Spoons checked in yet \u2014 be first!</span></div>`;
 
   let spoonBtn = '';
@@ -1525,7 +1525,7 @@ function renderAddPlaceForm() {
         <label class="form-label">Must order (optional)</label>
         <input class="form-input" id="apMust" placeholder="The dish everyone has to try\u2026"/>
       </div>
-      <button class="btn-submit" id="apSubmitBtn" onclick="submitAddPlace()">Add to Spoon &#129348; </button>
+      <button class="btn-submit" id="apSubmitBtn" onclick="submitAddPlace()">Add to Spoon &#129348;</button>
     </div>`;
 }
 function selectApCategory(el, cat) {
@@ -1584,13 +1584,13 @@ async function submitAddPlace() {
   apSelectedSpoons = 0;
   apSelectedCategory = '';
   closeAddPlaceModal();
-  map.flyTo({ center:[long, lat], zoom:16 });
+  map.flyTo({ center:[lng, lat], zoom:16 });
   toast('"' + name + '" is on Spoon now! &#129348;');
   setTimeout(() => openPanel(newId), 350);
 }
 
 // \u2500\u2500 TOAST \u2500\u2500
-.ction toast(msg) {
+function toast(msg) {
   const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
   document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
 }
