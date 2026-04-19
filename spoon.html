@@ -601,7 +601,7 @@ const SPOON_DESCS = ['','Edible','Decent','Good','Great','Unmissable'];
 const RESTAURANTS = [
   { id:1, name:"Greca", category:"Greek", address:"Howard Smith Wharves, Brisbane City", lat:-27.4569, lng:153.0359, spoons:5, totalRatings:47, daily:12, weekly:67, monthly:245,
     reviews:[
-      {author:"Mia",spoons:5,text:"The lamb shoulder is genuinely one of the best things I've eaten in Brisbane.",tags:["Worth it","Felt it","Fancy","Romantic"],mustOrder:"Lamb shoulder",back:"Already booked",date:"2 days ago"},
+      {author:"Mia",spoons:5,text:"The lamb shoulder is genuinely one of the best things I've eated in Brisbane.",tags:["Worth it","Felt it","Fancy","Romantic"],mustOrder:"Lamb shoulder",back:"Already booked",date:"2 days ago"},
       {author:"Sophie",spoons:5,text:"Book ahead! Dips platter is non-negotiable.",tags:["Painful but worth it","Fair","Buzzy"],mustOrder:"Dips platter",back:"Definitely",date:"1 week ago"}
     ],
     chats:[{author:"Mia",color:"#FF8B8B",text:"Just finished lunch \u2014 no wait right now!",time:"12:34"},{author:"Sophie",color:"#C3A8D8",text:"Is the lamb shoulder still on?",time:"12:41"},{author:"Mia",color:"#FF8B8B",text:"Yes!! They still have it \uD83D\uDE4C",time:"12:42"}]
@@ -709,6 +709,7 @@ let dropdownVisible = false;
 let selectedResultIndex = -1;
 
 // \u2500\u2500 AUTH \u2500\u2500
+
 function buildColorGrid() {
   const grid = document.getElementById('colorGrid');
   if (!grid) return;
@@ -882,16 +883,16 @@ function renderRankings() {
   const sorted = [...RESTAURANTS].sort((a,b) => b[currentRankTab] - a[currentRankTab]);
   const list = document.getElementById('rankList');
   list.innerHTML = sorted.map((r,i) => `
-    <div class="rank-item${activePanelId===r.id?' active-panel':''}" onclick="openPanel(${r.id})">
-      <div class="rank-num${i<3?' top':''}">#${i+1}</div>
-      <div class="rank-info">
-        <div class="rank-name">${r.name}</div>
-        <div class="rank-meta">
-          <div class="rank-spoons-mini">${spoonRow(r.spoons, 12, '#111')}</div>
-          <span class="rank-visits">${r[currentRankTab]} visits</span>
-        </div>
+  <div class="rank-item${activePanelId===r.id?' active-panel':''}" onclick="openPanel(${r.id})">
+    <div class="rank-num${i<3?' top':''}">#${i+1}</div>
+    <div class="rank-info">
+      <div class="rank-name">${r.name}</div>
+      <div class="rank-meta">
+        <div class="rank-spoons-mini">${spoonRow(r.spoons, 12, '#111')}</div>
+        <span class="rank-visits">${r[currentRankTab]} visits</span>
       </div>
-    </div>`).join('');
+    </div>
+  </div>`).join('');
 }
 
 // \u2500\u2500 SEARCH \u2500\u2500
@@ -920,7 +921,7 @@ async function onSearchInput(val, dropdownId) {
 
       // Query Nominatim geocoding for Brisbane POIs (free, no token)
       const nmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}+Brisbane&format=json&limit=6&countrycodes=au&addressdetails=1`;
-      const res = await fetch(nmUrl, { headers: { 'Accept-Language': 'en' } });
+      const res = await fetch(mmUrl, { headers: { 'Accept-Language': 'en' } });
       const nmData = await res.json();
       const data = { features: nmData.map(f => ({
         text: f.display_name.split(',')[0],
@@ -938,7 +939,7 @@ async function onSearchInput(val, dropdownId) {
         html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
           <span class="search-result-name search-in-spoon">\uD83E\uDD44 ${r.name}</span>
           <span class="search-result-addr">${r.address}</span>
-          <span class="search-result-tag">${r.category} \u00B7 ${r.spoons} spoon${r.spoons>1?'s':''}</span>
+          <span class="search-result-tag">${r.category} \u00Bï ${r.spoons} spoon${r.spoons>1?'s':''}</span>
         </div>`;
       });
 
@@ -964,9 +965,9 @@ async function onSearchInput(val, dropdownId) {
       const localMatches = RESTAURANTS.filter(r => r.name.toLowerCase().includes(val.toLowerCase()));
       if (localMatches.length) {
         searchResults = localMatches.map(r=>({type:'local',id:r.id}));
-        dd.innerHTML = localMatches.map((r,i) => `
+        dd.innerHTML = localMatches.map((r,i)=>`
           <div class="search-result" onclick="selectSearchResult(${i})">
-            <span class="search-result-name search-in-spoon">"\uD83E\uDD44 ${r.name}</span>
+            <span class="search-result-name search-in-spoon">\uD83E\uDD44 ${r.name}</span>
             <span class="search-result-addr">${r.address}</span>
           </div>`).join('');
       } else {
@@ -1031,7 +1032,7 @@ function renderNewPlacePanel(place) {
       </div>
       <div>
         <label class="form-label">Spoon rating</label>
-        <div class="spoon-picker-row" id="npSpoonRow">
+        <div class="       <div class="spoon-picker-row" id="npSpoonRow">
           ${[1,2,3,4,5].map(i=>`<button class="spoon-pick-btn" onclick="pickNpSpoons(${i})">${spoonSVG('#111',26,false)}</button>`).join('')}
           <span class="spoon-rating-desc" id="npSpoonDesc">tap to rate</span>
         </div>
@@ -1224,7 +1225,7 @@ function renderPanel(id) {
   const userReview = currentUser ? r.reviews.find(rv=>rv.author===currentUser.name) : null;
   const reviewFormHtml = currentUser && !userReview ? `
     <div class="panel-review-section">
-      <div class="section-label">Leave your reviews/div>
+      <div class="section-label">Leave your review</div>
       <div class="rate-form" id="panelReviewForm_${id}">
         <div>
           <label class="form-label">Spoon rating</label>
@@ -1281,7 +1282,7 @@ function spoonIn(id) {
   const r = RESTAURANTS.find(x=>x.id===id);
   document.getElementById('headerLoc').textContent = '\uD83D\uDCCD '+r.name;
   // Show check-in indicator in header
-  document.getElementById('checkinText').textContent = r^name;
+  document.getElementById('checkinText').textContent = r.name;
   document.getElementById('checkinIndicator').classList.add('visible');
   refreshMarker(id);
   openPanel(id);
