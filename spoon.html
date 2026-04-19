@@ -1458,7 +1458,7 @@ function openChatModal(id) {
       <small>You need to be at <strong>${r.name}</strong><br>to chat with the Spoons here.</small><br>
       ${currentUser?(currentUser.checkedInAt
         ?`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="spoonOut();spoonIn(${id})">Switch here \uD83E\uDD44</button>`
-        :`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="closeChatModal();spoonIn(${id})">Spoon in \uD83E\uDD44</button>`);''}
+        :`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="closeChatModal();spoonIn(${id})">Spoon in \uD83E\uDD44</button>`):''}
     </div>`;
   }
   document.getElementById('chatOverlay').classList.add('open');
