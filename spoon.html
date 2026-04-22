@@ -5,18 +5,26 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spoon &mdash; Skip the algorithm. Trust a Spoon.</title>
-  <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:'Inter',sans-serif; background:#fff; color:#111; height:100vh; overflow:hidden; }
 
-    /* &#x2500;&#x2500; HEADER &#x2500;&#x2500; */
+    :root {
+      --hdr: 54px;
+      --cat: 48px;
+      --top: 102px; /* --hdr + --cat */
+    }
+
+    /* ── HEADER ── */
     .header {
       position:fixed; top:0; left:0; right:0; z-index:1000;
       background:#fff; border-bottom:1.5px solid #111;
-      padding:0 20px; height:54px;
+      height:var(--hdr);
+    }
+    .header-row1 {
       display:flex; align-items:center; gap:16px;
+      padding:0 20px; height:54px;
     }
     .logo-wrap-inner { display:flex; align-items:center; gap:7px; }
     .logo { font-family:'Caveat',cursive; font-size:28px; font-weight:700; letter-spacing:-0.5px; white-space:nowrap; }
@@ -24,10 +32,8 @@
     .tagline { font-size:11px; color:#aaa; white-space:nowrap; display:none; }
     @media(min-width:900px){ .tagline{ display:block; } }
 
-    /* Search bar */
-    .search-wrap {
-      flex:1; max-width:420px; position:relative;
-    }
+    /* Search */
+    .search-wrap-desktop { flex:1; max-width:420px; position:relative; }
     .search-wrap-mobile { display:none; }
     .search-input {
       width:100%; border:1.5px solid #ddd; padding:8px 14px 8px 36px;
@@ -35,21 +41,14 @@
       background:#fafafa; transition:border-color 0.15s;
     }
     .search-input:focus { border-color:#111; background:#fff; }
-    .search-icon {
-      position:absolute; left:11px; top:50%; transform:translateY(-50%);
-      font-size:14px; color:#aaa; pointer-events:none;
-    }
+    .search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); font-size:14px; color:#aaa; pointer-events:none; }
     .search-dropdown {
       position:absolute; top:calc(100% + 4px); left:0; right:0;
-      background:#fff; border:1.5px solid #111;
-      box-shadow:3px 3px 0 #111; z-index:2000;
-      display:none; max-height:280px; overflow-y:auto;
+      background:#fff; border:1.5px solid #111; box-shadow:3px 3px 0 #111;
+      z-index:2100; display:none; max-height:300px; overflow-y:auto;
     }
     .search-dropdown.open { display:block; }
-    .search-result {
-      padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f0f0;
-      display:flex; flex-direction:column; gap:2px;
-    }
+    .search-result { padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f0f0; display:flex; flex-direction:column; gap:2px; }
     .search-result:last-child { border-bottom:none; }
     .search-result:hover { background:#f7f7f7; }
     .search-result-name { font-family:'Caveat',cursive; font-size:17px; font-weight:600; }
@@ -57,38 +56,47 @@
     .search-result-tag { font-size:11px; color:#888; }
     .search-in-spoon { color:#111; }
     .search-new { color:#bbb; font-style:italic; }
-    .search-loading { padding:12px 14px; font-size:13px; color:#aaa; font-family:'Caveat',cursive; font-size:16px; }
+    .search-loading { padding:12px 14px; font-size:16px; color:#aaa; font-family:'Caveat',cursive; }
 
     /* User pill */
-    .user-pill {
-      display:flex; align-items:center; gap:8px;
-      border:1.5px solid #111; padding:4px 12px 4px 7px;
-      white-space:nowrap; flex-shrink:0;
-    }
+    .user-pill { display:flex; align-items:center; gap:8px; border:1.5px solid #111; padding:4px 12px 4px 7px; white-space:nowrap; flex-shrink:0; }
     .header-spoon-wrap { width:14px; }
     .user-info-name { font-family:'Caveat',cursive; font-size:14px; line-height:1.1; }
     .user-info-loc { font-size:10px; color:#888; }
 
-    /* &#x2500;&#x2500; LAYOUT &#x2500;&#x2500; */
-    #map {
-      position:fixed; top:54px; left:260px; right:0; bottom:0; z-index:1;
-      transition:left 0.3s ease;
+    /* ── CATEGORY BAR ── */
+    .category-bar {
+      position:fixed; top:var(--hdr); left:0; right:0; z-index:990;
+      background:#fff; border-bottom:1.5px solid #eee;
+      height:var(--cat); display:flex; align-items:center;
+      gap:8px; padding:0 14px;
+      overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none;
+      white-space:nowrap;
     }
+    .category-bar::-webkit-scrollbar { display:none; }
+    .cat-chip {
+      flex-shrink:0; padding:6px 14px; border:1.5px solid #ddd;
+      font-family:'Caveat',cursive; font-size:15px; cursor:pointer;
+      background:#fff; color:#888; border-radius:20px; transition:all 0.12s;
+    }
+    .cat-chip:hover { border-color:#aaa; color:#111; }
+    .cat-chip.active { background:#111; color:#fff; border-color:#111; }
+
+    /* ── LAYOUT ── */
+    #map { position:fixed; top:var(--top); left:260px; right:0; bottom:0; z-index:1; transition:left 0.3s ease; }
     #map.panel-hidden { left:0; }
 
-    /* &#x2500;&#x2500; LEFT PANEL (Rankings) &#x2500;&#x2500; */
+    /* ── LEFT PANEL ── */
     .left-panel {
-      position:fixed; top:54px; left:0;
-      width:260px; bottom:0;
+      position:fixed; top:var(--top); left:0; width:260px; bottom:0;
       background:#fff; border-right:1.5px solid #111;
       z-index:400; display:flex; flex-direction:column;
       overflow:hidden; transition:left 0.3s ease;
     }
     .left-panel.hidden { left:-262px; }
 
-    /* Panel toggle button &mdash; always visible */
     .panel-toggle-btn {
-      position:fixed; top:62px; left:260px; z-index:600;
+      position:fixed; top:calc(var(--top) + 8px); left:260px; z-index:600;
       background:#fff; border:1.5px solid #111; border-left:none;
       width:auto; min-width:22px; height:40px; padding:0 11px;
       display:flex; align-items:center; justify-content:center; gap:5px;
@@ -99,7 +107,7 @@
     .panel-toggle-btn.hidden { left:0; border-left:1.5px solid #111; }
     .panel-toggle-btn:hover { background:#f5f5f5; color:#111; }
 
-    /* Add Place FAB */
+    /* Add Place FAB — moved left of zoom controls */
     .add-place-fab {
       position:fixed; bottom:80px; right:14px; z-index:600;
       background:#111; color:#fff; border:none;
@@ -112,121 +120,74 @@
     .add-place-fab.visible { display:flex; }
     .add-place-fab:hover { background:#333; }
 
-    .left-panel-header {
-      padding:16px 16px 12px;
-      border-bottom:1px solid #eee;
-    }
-    .left-panel-title {
-      font-family:'Caveat',cursive; font-size:22px; font-weight:700;
-      margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;
-    }
-    .left-panel-close {
-      background:none; border:none; font-size:16px; color:#bbb; cursor:pointer; line-height:1;
-    }
+    .left-panel-header { padding:16px 16px 12px; border-bottom:1px solid #eee; }
+    .left-panel-title { font-family:'Caveat',cursive; font-size:22px; font-weight:700; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; }
+    .left-panel-close { background:none; border:none; font-size:16px; color:#bbb; cursor:pointer; line-height:1; }
     .left-panel-close:hover { color:#111; }
 
-    /* Mobile: panel floats over full-width map */
+    /* ── MOBILE ── */
     @media(max-width:700px) {
-      /* Two-row header on mobile */
-      .header {
-        height:auto !important; flex-wrap:wrap; padding:0 !important;
-        gap:0 !important; row-gap:0; border-bottom:none !important;
-      }
-      .header-row1 {
-        display:flex; align-items:center; width:100%; height:50px;
-        padding:0 14px; gap:10px; border-bottom:1px solid #eee;
-      }
-      /* Hide desktop search on mobile */
+      :root { --hdr: 108px; --top: 156px; }
+      .header { height:auto !important; flex-wrap:wrap; padding:0 !important; gap:0 !important; row-gap:0; border-bottom:none !important; }
+      .header-row1 { display:flex; align-items:center; width:100%; height:50px; padding:0 14px; gap:10px; border-bottom:1px solid #eee; }
       .search-wrap-desktop { display:none !important; }
-      /* Show mobile search row */
       .search-wrap-mobile {
         display:block !important; flex:none; max-width:none;
         width:100%; padding:7px 14px 8px; background:#fff;
-        border-bottom:1.5px solid #111;
-        position:relative;
+        border-bottom:1.5px solid #111; position:relative;
       }
-      .search-wrap-mobile .search-input {
-        font-size:15px; padding:10px 14px 10px 36px;
-        border-radius:8px; border:1.5px solid #ddd;
-      }
-      #map { top:108px !important; left:0 !important; }
-      .left-panel { top:108px !important; box-shadow:4px 0 20px rgba(0,0,0,0.18); z-index:800; }
-      /* Toggle btn: floating pill bottom-left with label */
+      .search-wrap-mobile .search-input { font-size:15px; padding:10px 14px 10px 36px; border-radius:8px; border:1.5px solid #ddd; }
+      #map { left:0 !important; }
+      .left-panel { box-shadow:4px 0 20px rgba(0,0,0,0.18); z-index:800; }
       .panel-toggle-btn {
-        position:fixed !important; top:auto !important; bottom:20px !important;
-        left:14px !important; width:auto !important; height:44px !important;
-        border:1.5px solid #111 !important; border-radius:22px !important;
-        box-shadow:3px 3px 0 #111 !important; font-size:15px !important;
-        background:#fff !important; z-index:900 !important;
-        padding:0 18px !important;
+        position:fixed !important; top:auto !important; bottom:20px !important; left:14px !important;
+        width:auto !important; height:44px !important; border:1.5px solid #111 !important;
+        border-radius:22px !important; box-shadow:3px 3px 0 #111 !important; font-size:15px !important;
+        background:#fff !important; z-index:900 !important; padding:0 18px !important;
         font-family:'Caveat',cursive !important; letter-spacing:0.3px;
       }
-      .side-panel { width:100% !important; right:-100% !important; top:108px !important; }
+      .side-panel { width:100% !important; right:-100% !important; }
       .side-panel.open { right:0 !important; }
+      .add-place-fab { bottom:20px; right:14px; }
     }
+
+    /* ── RANKINGS ── */
     .rank-tabs { display:flex; gap:6px; }
-    .rank-tab {
-      flex:1; padding:6px 0; border:1.5px solid #ddd;
-      font-family:'Caveat',cursive; font-size:15px; cursor:pointer;
-      background:#fff; color:#888; text-align:center; transition:all 0.1s;
-    }
+    .rank-tab { flex:1; padding:6px 0; border:1.5px solid #ddd; font-family:'Caveat',cursive; font-size:15px; cursor:pointer; background:#fff; color:#888; text-align:center; transition:all 0.1s; }
     .rank-tab.active { background:#111; color:#fff; border-color:#111; }
     .rank-tab:hover:not(.active) { border-color:#aaa; color:#111; }
-
     .rank-list { flex:1; overflow-y:auto; padding:8px 0; }
-    .rank-item {
-      display:flex; align-items:center; gap:10px;
-      padding:10px 16px; cursor:pointer;
-      border-bottom:1px solid #f5f5f5; transition:background 0.1s;
-    }
+    .rank-item { display:flex; align-items:center; gap:10px; padding:10px 16px; cursor:pointer; border-bottom:1px solid #f5f5f5; transition:background 0.1s; }
     .rank-item:hover { background:#fafafa; }
     .rank-item.active-panel { background:#f5f5f5; }
-    .rank-num {
-      font-family:'Caveat',cursive; font-size:20px; font-weight:700;
-      color:#ddd; width:22px; flex-shrink:0; text-align:center;
-    }
+    .rank-num { font-family:'Caveat',cursive; font-size:20px; font-weight:700; color:#ddd; width:22px; flex-shrink:0; text-align:center; }
     .rank-num.top { color:#111; }
     .rank-info { flex:1; min-width:0; }
-    .rank-name {
-      font-family:'Caveat',cursive; font-size:16px; font-weight:600;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
+    .rank-name { font-family:'Caveat',cursive; font-size:16px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .rank-meta { display:flex; align-items:center; gap:6px; margin-top:1px; }
     .rank-visits { font-size:11px; color:#aaa; }
     .rank-spoons-mini { display:flex; gap:1px; }
 
-    /* &#x2500;&#x2500; MAP MARKERS &#x2500;&#x2500; */
+    /* ── MAP MARKERS ── */
     .marker-wrap { display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
     .marker-label {
       background:#fff; border:1.5px solid #111; border-radius:20px;
-      padding:4px 10px; font-family:'Caveat',cursive;
-      font-size:13px; font-weight:600; white-space:nowrap;
-      box-shadow:2px 2px 0 #111; cursor:pointer; transition:transform 0.12s;
+      padding:4px 10px; font-family:'Caveat',cursive; font-size:13px; font-weight:600;
+      white-space:nowrap; box-shadow:2px 2px 0 #111; cursor:pointer; transition:transform 0.12s;
     }
     .marker-label:hover { transform:scale(1.05); }
     .marker-label.active { background:#111; color:#fff; }
+    .gplace-label { background:#f8f8f8; border-color:#bbb; color:#555; box-shadow:1px 1px 0 #bbb; font-size:12px; }
     .marker-spoons-row { display:flex; gap:1px; padding-left:6px; align-items:flex-end; }
     .marker-avatars { display:flex; gap:3px; padding-left:6px; margin-top:1px; }
-    .avatar-dot {
-      width:18px; height:18px; border-radius:50%; border:1.5px solid #fff;
-      display:flex; align-items:center; justify-content:center;
-      font-size:8px; font-weight:700; color:#fff; font-family:'Inter',sans-serif;
-      box-shadow:1px 1px 0 #ccc;
-    }
+    .avatar-dot { width:18px; height:18px; border-radius:50%; border:1.5px solid #fff; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:700; color:#fff; font-family:'Inter',sans-serif; box-shadow:1px 1px 0 #ccc; }
+    .active-count-badge { display:inline-flex; align-items:center; justify-content:center; background:#111; color:#fff; border-radius:20px; padding:1px 7px; font-size:11px; font-family:'Caveat',cursive; font-weight:700; margin-left:3px; }
 
-    /* &#x2500;&#x2500; RIGHT PANEL &#x2500;&#x2500; */
-    .side-panel {
-      position:fixed; top:54px; right:-390px;
-      width:370px; bottom:0; background:#fff;
-      border-left:1.5px solid #111; z-index:500;
-      overflow-y:auto; transition:right 0.28s ease;
-    }
+    /* ── RIGHT PANEL ── */
+    .side-panel { position:fixed; top:var(--top); right:-390px; width:370px; bottom:0; background:#fff; border-left:1.5px solid #111; z-index:500; overflow-y:auto; transition:right 0.28s ease; }
     .side-panel.open { right:0; }
     .panel-inner { padding:22px 20px; }
-    .panel-close {
-      position:absolute; top:14px; right:14px;
-      background:none; border:none; font-size:17px; cursor:pointer; color:#aaa;
-    }
+    .panel-close { position:absolute; top:14px; right:14px; background:none; border:none; font-size:17px; cursor:pointer; color:#aaa; }
     .panel-close:hover { color:#111; }
     .panel-category { font-size:10px; text-transform:uppercase; letter-spacing:1.8px; color:#aaa; margin-bottom:4px; }
     .panel-name { font-family:'Caveat',cursive; font-size:32px; font-weight:700; line-height:1.05; margin-bottom:5px; }
@@ -260,16 +221,8 @@
     .review-must { font-size:12px; color:#888; margin-top:3px; }
     .review-must strong { color:#111; }
     .review-date { font-size:11px; color:#ccc; margin-top:3px; }
-
-    /* New place panel */
-    .new-place-banner {
-      background:#fafafa; border:1px solid #eee;
-      padding:14px; margin-bottom:16px;
-      font-size:13px; color:#666; line-height:1.6;
-    }
+    .new-place-banner { background:#fafafa; border:1px solid #eee; padding:14px; margin-bottom:16px; font-size:13px; color:#666; line-height:1.6; }
     .new-place-banner strong { color:#111; font-family:'Caveat',cursive; font-size:16px; display:block; margin-bottom:4px; }
-
-    /* Rate form inline */
     .rate-form { display:flex; flex-direction:column; gap:14px; }
     .form-label { font-size:10px; font-weight:500; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:6px; }
     .form-input, .form-textarea { width:100%; border:1px solid #ddd; padding:9px 12px; font-family:'Inter',sans-serif; font-size:13px; outline:none; }
@@ -287,11 +240,9 @@
     .btn-submit:hover { background:#333; }
     .form-divider { border:none; border-top:1px solid #eee; }
 
-    /* &#x2500;&#x2500; MODALS &#x2500;&#x2500; */
+    /* ── MODALS ── */
     .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:2000; display:none; align-items:flex-start; justify-content:center; overflow-y:auto; padding:20px 10px; }
     .modal-overlay.open { display:flex; }
-
-    /* &#x2500;&#x2500; AUTH MODAL &#x2500;&#x2500; */
     .auth-modal { background:#fff; border:1.5px solid #111; box-shadow:6px 6px 0 #111; width:420px; max-width:96vw; padding:36px 30px 30px; margin:auto; }
     .auth-logo { font-family:'Caveat',cursive; font-size:46px; font-weight:700; line-height:1; margin-bottom:3px; }
     .auth-tagline { font-size:12px; color:#888; margin-bottom:26px; }
@@ -310,20 +261,20 @@
     .auth-google-btn:hover { border-color:#111; }
     .auth-error { font-size:13px; color:#c00; margin-bottom:12px; display:none; background:#fff5f5; padding:8px 11px; border-left:3px solid #c00; }
     .auth-error.visible { display:block; }
-    /* Color picker (signup) */
-    .color-grid { display:flex; gap:9px; flex-wrap:wrap; margin-bottom:20px; }
+    .color-grid { display:flex; gap:9px; flex-wrap:wrap; margin-bottom
+20px; }
     .color-swatch { width:34px; height:34px; border-radius:50%; cursor:pointer; border:2.5px solid transparent; transition:transform 0.1s, border-color 0.1s; }
     .color-swatch:hover { transform:scale(1.1); }
     .color-swatch.selected { border-color:#111; transform:scale(1.12); }
-    .spoon-preview-row { display:flex; align-items:center; gap:16px; padding:14px; border:1px solid #eee; margin-bottom:20px; }
+    .spoon-preview-row { display:flex; align-items:center; gap:16px; padding:14px; border:1px solid #eee; margin-bottom
+20px; }
     .preview-spoon-wrap { width:26px; }
     .preview-text { font-family:'Caveat',cursive; font-size:15px; color:#888; }
     .preview-name { font-family:'Caveat',cursive; font-size:19px; font-weight:600; }
-    /* Logout button in header */
     .logout-btn { font-size:12px; color:#aaa; background:none; border:none; cursor:pointer; padding:0 4px; }
     .logout-btn:hover { color:#111; }
 
-    /* &#x2500;&#x2500; CHAT MODAL &#x2500;&#x2500; */
+    /* ── CHAT ── */
     .chat-modal { background:#fff; border:1.5px solid #111; box-shadow:5px 5px 0 #111; width:420px; max-width:95vw; height:560px; display:flex; flex-direction:column; }
     .chat-modal-header { padding:14px 18px; border-bottom:1.5px solid #111; display:flex; align-items:flex-start; justify-content:space-between; }
     .chat-place-name { font-family:'Caveat',cursive; font-size:23px; font-weight:700; line-height:1; }
@@ -348,39 +299,30 @@
     .chat-locked p { font-family:'Caveat',cursive; font-size:17px; color:#aaa; }
     .chat-locked small { font-size:12px; color:#bbb; line-height:1.6; }
 
-    /* Toast */
-    .toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:#111; color:#fff; padding:12px 22px; font-family:'Caveat',cursive; font-size:17px; z-index:9999; box-shadow:3px 3px 0 #555; animation:fadeUp 0.2s ease; }
-    @keyframes fadeUp { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
-
-    .maplibregl-ctrl-attrib { font-size:9px !important; }
-    .maplibregl-ctrl-logo { display:none !important; }
-
-    /* &#x2500;&#x2500; CHECK-IN INDICATOR &#x2500;&#x2500; */
-    .checkin-indicator {
-      display:none; align-items:center; gap:7px;
-      background:#111; color:#fff;
-      padding:5px 13px 5px 10px;
-      font-family:'Caveat',cursive; font-size:15px;
-      white-space:nowrap; flex-shrink:0;
-    }
+    /* ── CHECK-IN ── */
+    .checkin-indicator { display:none; align-items:center; gap:7px; background:#111; color:#fff; padding:5px 13px 5px 10px; font-family:'Caveat',cursive; font-size:15px; white-space:nowrap; flex-shrink:0; }
     .checkin-indicator.visible { display:flex; }
     .checkin-pulse { width:7px; height:7px; background:#7FFF7F; border-radius:50%; animation:blink 1.4s infinite; flex-shrink:0; }
 
-    /* &#x2500;&#x2500; REVIEW MODAL &#x2500;&#x2500; */
+    /* ── REVIEW MODAL ── */
     .review-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:3000; display:none; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
     .review-overlay.open { display:flex; }
     .review-modal { background:#fff; border:1.5px solid #111; box-shadow:6px 6px 0 #111; width:450px; max-width:95vw; padding:28px 24px; position:relative; }
-    .review-modal-title { font-family:'Caveat',cursive; font-size:26px; font-weight:700; margin-bottom:3px; }
+    .review-modal-title { font-family:'Caveat',cursive; font-size:26px; font-weight:700; margin-bottom
+3px; }
     .review-modal-sub { font-size:12px; color:#888; margin-bottom:22px; }
     .review-skip { background:none; border:none; color:#bbb; font-family:'Inter',sans-serif; font-size:13px; cursor:pointer; width:100%; text-align:center; padding:10px; margin-top:4px; }
     .review-skip:hover { color:#666; text-decoration:underline; }
-
-    /* Active count badge on markers */
-    .active-count-badge { display:inline-flex; align-items:center; justify-content:center; background:#111; color:#fff; border-radius:20px; padding:1px 7px; font-size:11px; font-family:'Caveat',cursive; font-weight:700; margin-left:3px; }
-
-    /* Panel review form */
     .panel-review-section { margin-top:20px; border-top:1px solid #eee; padding-top:16px; }
     .already-reviewed { text-align:center; padding:12px 0; font-family:'Caveat',cursive; font-size:15px; color:#bbb; }
+
+    /* ── TOAST ── */
+    .toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:#111; color:#fff; padding:12px 22px; font-family:'Caveat',cursive; font-size:17px; z-index:9999; box-shadow:3px 3px 0 #555; animation:fadeUp 0.2s ease; }
+    @keyframes fadeUp { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+
+    /* Hide noisy Google Maps UI */
+    .gm-style-cc, .gmnoprint a { display:none !important; }
+    a[href^="https://maps.google.com/maps"] { display:none !important; }
   </style>
 </head>
 <body>
@@ -395,9 +337,8 @@
   </defs>
 </svg>
 
-<!-- &#x2500;&#x2500; HEADER &#x2500;&#x2500; -->
+<!-- ── HEADER ── -->
 <header class="header">
-  <!-- Row 1: logo + user controls -->
   <div class="header-row1">
     <div class="logo-wrap-inner">
       <div class="logo">Spoon</div>
@@ -409,10 +350,9 @@
       </div>
     </div>
     <div class="tagline">Skip the algorithm. Trust a Spoon.</div>
-    <!-- Desktop search (hidden on mobile, shown via .search-wrap block below) -->
-    <div class="search-wrap search-wrap-desktop">
+    <div class="search-wrap-desktop">
       <span class="search-icon">&#128269;</span>
-      <input class="search-input" id="searchInput" placeholder="Search a restaurant or caf&#233; in Brisbane&#8230;" autocomplete="off"
+      <input class="search-input" id="searchInput" placeholder="Search restaurants &amp; caf&eacute;s&hellip;" autocomplete="off"
         oninput="onSearchInput(this.value)" onblur="hideDropdownDelayed()" onkeydown="searchKeydown(event)"/>
       <div class="search-dropdown" id="searchDropdown"></div>
     </div>
@@ -428,22 +368,25 @@
       </div>
     </div>
   </div>
-  <!-- Row 2: mobile search bar -->
-  <div class="search-wrap search-wrap-mobile">
+  <!-- Mobile search row -->
+  <div class="search-wrap-mobile">
     <span class="search-icon">&#128269;</span>
-    <input class="search-input" id="searchInputMobile" placeholder="Search restaurants &amp; caf&#233;s&#8230;" autocomplete="off"
+    <input class="search-input" id="searchInputMobile" placeholder="Search restaurants &amp; caf&eacute;s&hellip;" autocomplete="off"
       oninput="onSearchInput(this.value,'searchDropdownMobile')" onblur="hideDropdownDelayed('searchDropdownMobile')" onkeydown="searchKeydown(event,'searchDropdownMobile')"/>
     <div class="search-dropdown" id="searchDropdownMobile"></div>
   </div>
 </header>
 
-<!-- &#x2500;&#x2500; PANEL TOGGLE BUTTON &#x2500;&#x2500; -->
+<!-- ── CATEGORY BAR ── -->
+<div class="category-bar" id="categoryBar"></div>
+
+<!-- ── PANEL TOGGLE ── -->
 <button class="panel-toggle-btn" id="panelToggleBtn" onclick="toggleLeftPanel()" title="Toggle rankings">&#x25C0;</button>
 
-<!-- &#x2500;&#x2500; ADD PLACE FAB &#x2500;&#x2500; -->
-<button class="add-place-fab" id="addPlaceFab" onclick="openAddPlaceModal()" title="Add a restaurant or caf&#233;">+</button>
+<!-- ── ADD PLACE FAB ── -->
+<button class="add-place-fab" id="addPlaceFab" onclick="openAddPlaceModal()" title="Add a restaurant or caf&eacute;">+</button>
 
-<!-- &#x2500;&#x2500; LEFT PANEL (Rankings) &#x2500;&#x2500; -->
+<!-- ── LEFT PANEL ── -->
 <div class="left-panel" id="leftPanel">
   <div class="left-panel-header">
     <div class="left-panel-title">
@@ -465,16 +408,16 @@
   <div class="rank-list" id="rankList"></div>
 </div>
 
-<!-- &#x2500;&#x2500; MAP &#x2500;&#x2500; -->
+<!-- ── MAP ── -->
 <div id="map"></div>
 
-<!-- &#x2500;&#x2500; RIGHT PANEL &#x2500;&#x2500; -->
+<!-- ── RIGHT PANEL ── -->
 <div class="side-panel" id="sidePanel">
   <button class="panel-close" onclick="closePanel()">&#x2715;</button>
   <div class="panel-inner" id="panelContent"></div>
 </div>
 
-<!-- &#x2500;&#x2500; CHAT MODAL &#x2500;&#x2500; -->
+<!-- ── CHAT MODAL ── -->
 <div class="modal-overlay" id="chatOverlay" onclick="chatBgClick(event)">
   <div class="chat-modal">
     <div class="chat-modal-header">
@@ -491,7 +434,7 @@
   </div>
 </div>
 
-<!-- &#x2500;&#x2500; REVIEW MODAL (Spoon-Out) &#x2500;&#x2500; -->
+<!-- ── REVIEW MODAL ── -->
 <div class="review-overlay" id="reviewOverlay">
   <div class="review-modal">
     <button class="panel-close" onclick="skipReview()" style="position:absolute;top:12px;right:12px">&#x2715;</button>
@@ -501,7 +444,7 @@
   </div>
 </div>
 
-<!-- &#x2500;&#x2500; ADD PLACE MODAL &#x2500;&#x2500; -->
+<!-- ── ADD PLACE MODAL ── -->
 <div class="modal-overlay" id="addPlaceOverlay" onclick="addPlaceBgClick(event)">
   <div class="auth-modal" style="max-height:90vh;overflow-y:auto;width:460px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
@@ -513,21 +456,21 @@
   </div>
 </div>
 
-<!-- &#x2500;&#x2500; AUTH MODAL &#x2500;&#x2500; -->
+<!-- ── AUTH MODAL ── -->
 <div class="modal-overlay open" id="authOverlay">
   <div class="auth-modal">
-    <div class="auth-logo">Spoon</div>
+    <div class="auth-logo" style="display:flex;align-items:center;gap:10px;">
+      <svg width="18" height="50" viewBox="0 0 28 80" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+        <path d="M14 3 C21.5 2.5,26 9,26 16.5 C26 25.5,20.5 31,16 32.5 L16.8 70.5 C17 74,15.5 77.5,14 77.5 C12.5 77.5,11 74,11.2 70.5 L12 32.5 C7.5 31,2 25.5,2 16.5 C2 9,6.5 2.5,14 3 Z" fill="#FFF5E4" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Spoon
+    </div>
     <div class="auth-tagline">Skip the algorithm. Trust a Spoon.</div>
-
-    <!-- Tabs -->
     <div class="auth-tabs">
       <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Log in</button>
       <button class="auth-tab" id="tabSignup" onclick="switchAuthTab('signup')">Sign up</button>
     </div>
-
     <div id="authError" class="auth-error"></div>
-
-    <!-- LOGIN FORM -->
     <div id="authLoginForm">
       <label class="auth-label">Email</label>
       <input class="auth-input" id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email"/>
@@ -541,8 +484,6 @@
         Continue with Google
       </button>
     </div>
-
-    <!-- SIGNUP FORM -->
     <div id="authSignupForm" style="display:none">
       <label class="auth-label">Your name</label>
       <input class="auth-input" id="signupName" placeholder="e.g. Mia" oninput="updateSignupPreview()"/>
@@ -566,105 +507,113 @@
         Continue with Google
       </button>
     </div>
-
   </div>
 </div>
 
 <script>
-// \u2500\u2500 SUPABASE TOKENS \u2500\u2500
+// ── SUPABASE TOKENS ──
 const SUPABASE_URL  = 'https://ipjzirxltkfbmckekcig.supabase.co';
 const SUPABASE_KEY  = 'sb_publishable_QCYHnZWtiKbt9xjU4Jc8Ig_k097jxva';
-let db = null; // initialised after supabase CDN loads
+let db = null;
+
+// Google Maps API key — replace with yours from console.cloud.google.com
+const GMAPS_KEY = 'AIzaSyDtc23g0CIDZOlah1ma8mk9pJgVDxVTRtw';
 </script>
-<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 
-// \u2500\u2500 SVG SPOON \u2500\u2500
+// ── SVG SPOON ──
 function spoonSVG(fill='#FFF5E4', height=60, wobble=false) {
   const w = Math.round(height * 0.37);
   const f = wobble ? ' filter="url(#hd)"' : '';
   return `<svg width="${w}" height="${height}" viewBox="0 0 28 80" xmlns="http://www.w3.org/2000/svg" overflow="visible">
     <path d="M14 3 C21.5 2.5,26 9,26 16.5 C26 25.5,20.5 31,16 32.5 L16.8 70.5 C17 74,15.5 77.5,14 77.5 C12.5 77.5,11 74,11.2 70.5 L12 32.5 C7.5 31,2 25.5,2 16.5 C2 9,6.5 2.5,14 3 Z"
-      fill="${fill}" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"${f}/>
-  </svg>`;
+      fill="${fill}" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"${f}/></svg>`;
 }
 function spoonRow(n, h=20, fill='#FFF5E4') {
   return '<div style="display:flex;gap:2px;align-items:flex-end">' + Array(n).fill(spoonSVG(fill,h,false)).join('') + '</div>';
 }
 
-// \u2500\u2500 CONSTANTS \u2500\u2500
+// ── CONSTANTS ──
 const COLORS = ['#FF8B8B','#FFB347','#FFD93D','#A8D8A8','#87CEEB','#C3A8D8','#E8A0B0','#98D8C8'];
 const SPOON_DESCS = ['','Edible','Decent','Good','Great','Unmissable'];
 
-// \u2500\u2500 DATA \u2500\u2500
+// ── CATEGORIES ──
+const CATEGORIES = [
+  { id:'all',        label:'🍽️ All',         type:'restaurant', keyword:null },
+  { id:'cafe',       label:'☕ Café',          type:'cafe',       keyword:null },
+  { id:'asian',      label:'🍜 Asian',         type:'restaurant', keyword:'asian food' },
+  { id:'sushi',      label:'🍣 Sushi',         type:'restaurant', keyword:'sushi' },
+  { id:'korean',     label:'🥩 Korean BBQ',    type:'restaurant', keyword:'korean bbq' },
+  { id:'pasta',      label:'🍝 Pasta',         type:'restaurant', keyword:'pasta' },
+  { id:'pizza',      label:'🍕 Pizza',         type:'restaurant', keyword:'pizza' },
+  { id:'burgers',    label:'🍔 Burgers',       type:'restaurant', keyword:'burger' },
+  { id:'sandwiches', label:'🥪 Sandwiches',    type:'restaurant', keyword:'sandwich deli' },
+  { id:'brunch',     label:'🌅 Brunch',        type:'restaurant', keyword:'brunch breakfast' },
+  { id:'mexican',    label:'🌮 Mexican',       type:'restaurant', keyword:'mexican tacos' },
+  { id:'bakery',     label:'🥐 Bakery',        type:'bakery',     keyword:null },
+  { id:'bar',        label:'🍺 Bar',           type:'bar',        keyword:null },
+  { id:'bubble',     label:'🧋 Bubble Tea',    type:'restaurant', keyword:'bubble tea boba' },
+  { id:'healthy',    label:'🥗 Healthy',       type:'restaurant', keyword:'healthy salad bowls' },
+];
+
+// ── DATA ──
 const RESTAURANTS = [
   { id:1, name:"Greca", category:"Greek", address:"Howard Smith Wharves, Brisbane City", lat:-27.4569, lng:153.0359, spoons:5, totalRatings:47, daily:12, weekly:67, monthly:245,
     reviews:[
-      {author:"Mia",spoons:5,text:"The lamb shoulder is genuinely one of the best things I've eated in Brisbane.",tags:["Worth it","Felt it","Fancy","Romantic"],mustOrder:"Lamb shoulder",back:"Already booked",date:"2 days ago"},
+      {author:"Mia",spoons:5,text:"The lamb shoulder is genuinely one of the best things I've eaten in Brisbane.",tags:["Worth it","Felt it","Fancy","Romantic"],mustOrder:"Lamb shoulder",back:"Already booked",date:"2 days ago"},
       {author:"Sophie",spoons:5,text:"Book ahead! Dips platter is non-negotiable.",tags:["Painful but worth it","Fair","Buzzy"],mustOrder:"Dips platter",back:"Definitely",date:"1 week ago"}
     ],
-    chats:[{author:"Mia",color:"#FF8B8B",text:"Just finished lunch \u2014 no wait right now!",time:"12:34"},{author:"Sophie",color:"#C3A8D8",text:"Is the lamb shoulder still on?",time:"12:41"},{author:"Mia",color:"#FF8B8B",text:"Yes!! They still have it \uD83D\uDE4C",time:"12:42"}]
+    chats:[{author:"Mia",color:"#FF8B8B",text:"Just finished lunch — no wait right now!",time:"12:34"},{author:"Sophie",color:"#C3A8D8",text:"Is the lamb shoulder still on?",time:"12:41"},{author:"Mia",color:"#FF8B8B",text:"Yes!! They still have it 🙌",time:"12:42"}]
   },
   { id:2, name:"Taro's Ramen", category:"Japanese", address:"Level 1, 111 Mary St, Brisbane City", lat:-27.4720, lng:153.0240, spoons:4, totalRatings:89, daily:18, weekly:89, monthly:312,
     reviews:[
-      {author:"Yuki",spoons:5,text:"Best ramen in Brisbane, full stop. Tonkotsu broth is insanely rich.",tags:["Painful but worth it","Steal \uD83E\uDD11","Cosy"],mustOrder:"Tonkotsu + soft egg",back:"Already booked",date:"3 days ago"},
+      {author:"Yuki",spoons:5,text:"Best ramen in Brisbane, full stop. Tonkotsu broth is insanely rich.",tags:["Painful but worth it","Steal 🤑","Cosy"],mustOrder:"Tonkotsu + soft egg",back:"Already booked",date:"3 days ago"},
       {author:"Anna",spoons:4,text:"Queue moves fast. Spicy miso is incredible.",tags:["Moved fast","Fair","Lively"],mustOrder:"Spicy miso",back:"Definitely",date:"5 days ago"}
     ],
-    chats:[{author:"Yuki",color:"#FFD93D",text:"Queue is about 20 mins rn \u2014 moving fast!",time:"11:52"},{author:"Anna",color:"#A8D8A8",text:"Is the spicy miso still available?",time:"12:03"},{author:"Yuki",color:"#FFD93D",text:"Yes it is! Just ordered it lol",time:"12:04"}]
+    chats:[{author:"Yuki",color:"#FFD93D",text:"Queue is about 20 mins rn — moving fast!",time:"11:52"},{author:"Anna",color:"#A8D8A8",text:"Is the spicy miso still available?",time:"12:03"},{author:"Yuki",color:"#FFD93D",text:"Yes it is! Just ordered it lol",time:"12:04"}]
   },
-  { id:3, name:"Pawpaw Caf\u00E9", category:"Brunch", address:"1 Brighton Rd, Newstead", lat:-27.4501, lng:153.0455, spoons:4, totalRatings:63, daily:9, weekly:44, monthly:189,
-    reviews:[
-      {author:"Grace",spoons:4,text:"My go-to brunch spot. Corn fritters are insane and coffee is top notch.",tags:["Zero queue","Fair","Cosy"],mustOrder:"Corn fritters",back:"Already booked",date:"1 week ago"}
-    ],
-    chats:[{author:"Grace",color:"#A8D8A8",text:"Arrived 9am \u2014 only 5 min wait \uD83C\uDF1F",time:"9:07"},{author:"Lily",color:"#E8A0B0",text:"Are they doing the seasonal smoothie bowl?",time:"9:15"},{author:"Grace",color:"#A8D8A8",text:"Yep! Mango season one is on \u2600\uFE0F",time:"9:16"}]
+  { id:3, name:"Pawpaw Café", category:"Brunch", address:"1 Brighton Rd, Newstead", lat:-27.4501, lng:153.0455, spoons:4, totalRatings:63, daily:9, weekly:44, monthly:189,
+    reviews:[{author:"Grace",spoons:4,text:"My go-to brunch spot. Corn fritters are insane and coffee is top notch.",tags:["Zero queue","Fair","Cosy"],mustOrder:"Corn fritters",back:"Already booked",date:"1 week ago"}],
+    chats:[{author:"Grace",color:"#A8D8A8",text:"Arrived 9am — only 5 min wait 🌟",time:"9:07"},{author:"Lily",color:"#E8A0B0",text:"Are they doing the seasonal smoothie bowl?",time:"9:15"},{author:"Grace",color:"#A8D8A8",text:"Yep! Mango season one is on ☀️",time:"9:16"}]
   },
   { id:4, name:"Julius Pizzeria", category:"Italian", address:"77 Grey St, South Brisbane", lat:-27.4789, lng:153.0173, spoons:4, totalRatings:54, daily:7, weekly:38, monthly:156,
-    reviews:[
-      {author:"Olivia",spoons:5,text:"Wood-fired, thin, perfectly charred. Burrata starter will change your life.",tags:["Zero queue","Felt it","Romantic","Fancy"],mustOrder:"Burrata + cacio e pepe pizza",back:"Already booked",date:"4 days ago"}
-    ],
-    chats:[{author:"Olivia",color:"#FFB347",text:"Walk-in friendly tonight! \uD83C\uDF55",time:"19:22"},{author:"Chloe",color:"#98D8C8",text:"Is the stracciatella starter still on?",time:"19:30"}]
+    reviews:[{author:"Olivia",spoons:5,text:"Wood-fired, thin, perfectly charred. Burrata starter will change your life.",tags:["Zero queue","Felt it","Romantic","Fancy"],mustOrder:"Burrata + cacio e pepe pizza",back:"Already booked",date:"4 days ago"}],
+    chats:[{author:"Olivia",color:"#FFB347",text:"Walk-in friendly tonight! 🍕",time:"19:22"},{author:"Chloe",color:"#98D8C8",text:"Is the stracciatella starter still on?",time:"19:30"}]
   },
-  { id:5, name:"Pearl Caf\u00E9", category:"Caf\u00E9", address:"1 Boundary St, West End", lat:-27.4818, lng:153.0097, spoons:3, totalRatings:112, daily:15, weekly:72, monthly:298,
-    reviews:[
-      {author:"Hannah",spoons:3,text:"Great coffee, iconic West End spot. Space is beautiful but food is just okay.",tags:["Painful but worth it","Fair","Cosy","Hidden gem"],mustOrder:"Flat white",back:"Definitely",date:"1 week ago"}
-    ],
+  { id:5, name:"Pearl Café", category:"Café", address:"1 Boundary St, West End", lat:-27.4818, lng:153.0097, spoons:3, totalRatings:112, daily:15, weekly:72, monthly:298,
+    reviews:[{author:"Hannah",spoons:3,text:"Great coffee, iconic West End spot. Space is beautiful but food is just okay.",tags:["Painful but worth it","Fair","Cosy","Hidden gem"],mustOrder:"Flat white",back:"Definitely",date:"1 week ago"}],
     chats:[{author:"Hannah",color:"#C3A8D8",text:"Super busy this morning but tables clearing fast",time:"8:45"}]
   },
   { id:6, name:"Longtime", category:"Asian Fusion", address:"481 Brunswick St, Fortitude Valley", lat:-27.4576, lng:153.0395, spoons:5, totalRatings:38, daily:11, weekly:53, monthly:201,
     reviews:[
-      {author:"Isabelle",spoons:5,text:"Hidden gem in the Valley. South-East Asian small plates are genuinely exciting. The betel leaf bites are \uD83E\uDD24",tags:["Zero queue","Felt it","Hidden gem","Lively"],mustOrder:"Betel leaf bites",back:"Already booked",date:"5 days ago"},
-      {author:"Natalie",spoons:5,text:"Incredible cocktails. Special without being stuffy.",tags:["Zero queue","Ouch \uD83D\uDCB8","Fancy","Romantic"],mustOrder:"Cocktail menu + duck",back:"Already booked",date:"1 week ago"}
+      {author:"Isabelle",spoons:5,text:"Hidden gem in the Valley. South-East Asian small plates are genuinely exciting.",tags:["Zero queue","Felt it","Hidden gem","Lively"],mustOrder:"Betel leaf bites",back:"Already booked",date:"5 days ago"},
+      {author:"Natalie",spoons:5,text:"Incredible cocktails. Special without being stuffy.",tags:["Zero queue","Ouch 💸","Fancy","Romantic"],mustOrder:"Cocktail menu + duck",back:"Already booked",date:"1 week ago"}
     ],
-    chats:[{author:"Isabelle",color:"#C3A8D8",text:"So good tonight! Duck dish is still on \uD83D\uDE4C",time:"20:11"},{author:"Natalie",color:"#87CEEB",text:"Are the betel leaf bites available??",time:"20:18"},{author:"Isabelle",color:"#C3A8D8",text:"Yes yes yes!!! Order immediately",time:"20:19"}]
+    chats:[{author:"Isabelle",color:"#C3A8D8",text:"So good tonight! Duck dish is still on 🙌",time:"20:11"},{author:"Natalie",color:"#87CEEB",text:"Are the betel leaf bites available??",time:"20:18"},{author:"Isabelle",color:"#C3A8D8",text:"Yes yes yes!!! Order immediately",time:"20:19"}]
   },
   { id:7, name:"Montrachet", category:"French", address:"224 Given Tce, Paddington", lat:-27.4600, lng:153.0009, spoons:5, totalRatings:29, daily:5, weekly:28, monthly:98,
-    reviews:[
-      {author:"Charlotte",spoons:5,text:"Brisbane's best French restaurant. Duck confit is perfect. White tablecloths but not intimidating.",tags:["Zero queue","Ouch \uD83D\uDCB8","Fancy","Romantic"],mustOrder:"Duck confit + souffl\u00E9 (order at start!)",back:"Already booked",date:"3 weeks ago"}
-    ],
-    chats:[{author:"Charlotte",color:"#E8A0B0",text:"Reminder: order the souffl\u00E9 at the START of the meal!! \uD83C\uDF82",time:"19:05"}]
+    reviews:[{author:"Charlotte",spoons:5,text:"Brisbane's best French restaurant. Duck confit is perfect.",tags:["Zero queue","Ouch 💸","Fancy","Romantic"],mustOrder:"Duck confit + soufflé (order at start!)",back:"Already booked",date:"3 weeks ago"}],
+    chats:[{author:"Charlotte",color:"#E8A0B0",text:"Reminder: order the soufflé at the START of the meal!! 🎂",time:"19:05"}]
   },
   { id:8, name:"Morning After", category:"Bakery", address:"11 Wandoo St, Fortitude Valley", lat:-27.4556, lng:153.0322, spoons:4, totalRatings:76, daily:22, weekly:108, monthly:389,
     reviews:[
-      {author:"Ruby",spoons:5,text:"Croissants sell out by 9am. Get there EARLY. Ham & cheese is worth waking up for.",tags:["Moved fast","Steal \uD83E\uDD11","Cosy","Hidden gem"],mustOrder:"Ham & cheese croissant",back:"Already booked",date:"2 days ago"},
+      {author:"Ruby",spoons:5,text:"Croissants sell out by 9am. Get there EARLY. Ham & cheese is worth waking up for.",tags:["Moved fast","Steal 🤑","Cosy","Hidden gem"],mustOrder:"Ham & cheese croissant",back:"Already booked",date:"2 days ago"},
       {author:"Violet",spoons:4,text:"Best coffee in the Valley. Banana bread still warm is a dream.",tags:["Zero queue","Fair","Cosy"],mustOrder:"Banana bread + batch brew",back:"Definitely",date:"1 week ago"}
-    ],
-    chats:[{author:"Ruby",color:"#FFB347",text:"Plain croissants just sold out! Ham & cheese still here \uD83E\uDD50",time:"8:47"},{author:"Violet",color:"#98D8C8",text:"Any almond croissants left?",time:"8:52"},{author:"Ruby",color:"#FFB347",text:"2 left when I came in \u2014 hurry!!",time:"8:53"}]
+  2 ],
+    chats:[{author:"Ruby",color:"#FFB347",text:"Plain croissants just sold out! Ham & cheese still here 🥐",time:"8:47"},{author:"Violet",color:"#98D8C8",text:"Any almond croissants left?",time:"8:52"},{author:"Ruby",color:"#FFB347",text:"2 left when I came in — hurry!!",time:"8:53"}]
   }
 ];
 
 const MOCK_ACTIVE = {};
 
-// \u2500\u2500 PANEL TOGGLE \u2500\u2500
+// ── PANEL TOGGLE ──
 let leftPanelOpen = true;
 const isMobileView = () => window.innerWidth <= 700;
 function updatePanelBtnLabel() {
   const btn = document.getElementById('panelToggleBtn');
-  if (leftPanelOpen) {
-    btn.innerHTML = '<span style="font-size:11px;color:#bbb;">&#x25C0;</span>';
-  } else {
-    btn.innerHTML = 'Top List <span style="font-size:11px;color:#bbb;">&#x25B6;</span>';
-  }
+  if (leftPanelOpen) btn.innerHTML = '<span style="font-size:11px;color:#bbb;">&#x25C0;</span>';
+  else btn.innerHTML = 'Top List <span style="font-size:11px;color:#bbb;">&#x25B6;</span>';
 }
 function toggleLeftPanel() {
   const panel = document.getElementById('leftPanel');
@@ -677,7 +626,6 @@ function toggleLeftPanel() {
     mapEl.classList.toggle('panel-hidden', !leftPanelOpen);
     updatePanelBtnLabel();
   } else {
-    // On mobile, button always visible as pill
     btn.innerHTML = leftPanelOpen ? '&#10005; Close' : '&#9776; Top List';
   }
 }
@@ -686,7 +634,6 @@ function initPanelState() {
   if (isMobile) {
     leftPanelOpen = false;
     document.getElementById('leftPanel').classList.add('hidden');
-    // On mobile: button is always visible as a floating pill at bottom-left
     const btn = document.getElementById('panelToggleBtn');
     btn.classList.remove('hidden');
     btn.innerHTML = '&#9776; Top List';
@@ -695,21 +642,20 @@ function initPanelState() {
   }
 }
 
-// \u2500\u2500 USER STATE \u2500\u2500
+// ── USER STATE ──
 let currentUser = null;
 let selectedColor = COLORS[0];
 let selectedSpoons = 0;
 let currentRankTab = 'daily';
 let activePanelId = null;
 
-// \u2500\u2500 SEARCH STATE \u2500\u2500
+// ── SEARCH STATE ──
 let searchDebounce = null;
 let searchResults = [];
 let dropdownVisible = false;
-let selectedResultIndex = -1;
+let acService = null; // Google Places AutocompleteService
 
-// \u2500\u2500 AUTH \u2500\u2500
-
+// ── AUTH ──
 function buildColorGrid() {
   const grid = document.getElementById('colorGrid');
   if (!grid) return;
@@ -732,7 +678,7 @@ function updateSignupPreview() {
   const ps = document.getElementById('previewSpoon');
   const pn = document.getElementById('previewName');
   if (ps) ps.innerHTML = spoonSVG(selectedColor, 62, true);
-  if (pn) pn.textContent = name || 'waiting\u2026';
+  if (pn) pn.textContent = name || 'waiting…';
 }
 function switchAuthTab(tab) {
   document.getElementById('authLoginForm').style.display = tab==='login'?'block':'none';
@@ -756,8 +702,6 @@ async function loginWithEmail() {
   if (!email||!pass) { showAuthError('Enter your email and password.'); return; }
   setAuthLoading(true);
   document.getElementById('authError').classList.remove('visible');
-
-  // Try Supabase first; fall back to localStorage on any failure
   let loggedIn = false;
   if (db) {
     try {
@@ -767,22 +711,14 @@ async function loginWithEmail() {
         enterApp(meta.name||email.split('@')[0], meta.color||COLORS[0]);
         loggedIn = true;
       }
-    } catch(e) { /* fall through to localStorage */ }
+    } catch(e) {}
   }
-
   if (!loggedIn) {
-    // localStorage fallback
     const stored = JSON.parse(localStorage.getItem('spoon_user')||'null');
-    if (stored && stored.email === email) {
-      enterApp(stored.name, stored.color||COLORS[0]);
-      loggedIn = true;
-    } else if (stored && stored.email !== email) {
-      showAuthError('Wrong email. Try the one you signed up with, or sign up again.');
-    } else {
-      showAuthError('No account found. Please sign up first.');
-    }
+    if (stored && stored.email === email) { enterApp(stored.name, stored.color||COLORS[0]); loggedIn = true; }
+    else if (stored && stored.email !== email) showAuthError('Wrong email. Try the one you signed up with, or sign up again.');
+    else showAuthError('No account found. Please sign up first.');
   }
-
   setAuthLoading(false);
 }
 async function signupWithEmail() {
@@ -794,28 +730,19 @@ async function signupWithEmail() {
   if (pass.length<6) { showAuthError('Password must be at least 6 characters.'); return; }
   setAuthLoading(true);
   document.getElementById('authError').classList.remove('visible');
-
   let signedUp = false;
   if (db) {
     try {
-      const { data, error } = await db.auth.signUp({
-        email, password: pass,
-        options: { data: { name, color: selectedColor } }
-      });
+      const { data, error } = await db.auth.signUp({ email, password: pass, options: { data: { name, color: selectedColor } } });
       if (!error) {
         if (data.user && !data.session) {
-          // Email confirmation required
           showAuthError('Check your email to confirm your account, then log in!');
-          setAuthLoading(false);
-          switchAuthTab('login');
-          return;
+          setAuthLoading(false); switchAuthTab('login'); return;
         }
         signedUp = true;
       }
-    } catch(e) { /* fall through to localStorage */ }
+    } catch(e) {}
   }
-
-  // Always save to localStorage (works offline + as session persistence)
   localStorage.setItem('spoon_user', JSON.stringify({ name, email, color: selectedColor }));
   enterApp(name, selectedColor);
   setAuthLoading(false);
@@ -823,14 +750,9 @@ async function signupWithEmail() {
 async function loginWithGoogle() {
   if (!db) { showAuthError('Google login requires Supabase setup. Use email/password instead.'); return; }
   try {
-    const { error } = await db.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.href }
-    });
+    const { error } = await db.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
     if (error) throw error;
-  } catch(e) {
-    showAuthError('Google login failed: '+e.message);
-  }
+  } catch(e) { showAuthError('Google login failed: '+e.message); }
 }
 async function logoutUser() {
   if (db) await db.auth.signOut();
@@ -847,14 +769,13 @@ function enterApp(name, color) {
   currentUser = { name, color, checkedInAt:null };
   selectedColor = color;
   document.getElementById('headerSpoon').innerHTML = spoonSVG(color, 36, false);
-  document.getElementById('headerName').innerHTML = name + ' <button class="logout-btn" onclick="logoutUser()" title="Log out">\u21A9</button>';
+  document.getElementById('headerName').innerHTML = name + ' <button class="logout-btn" onclick="logoutUser()" title="Log out">↩</button>';
   document.getElementById('userPill').style.display = 'flex';
   document.getElementById('authOverlay').classList.remove('open');
   document.getElementById('addPlaceFab').classList.add('visible');
 }
 async function checkExistingSession() {
   if (!db) {
-    // Check localStorage session
     const stored = JSON.parse(localStorage.getItem('spoon_user') || 'null');
     if (stored && stored.name) enterApp(stored.name, stored.color || COLORS[0]);
     return;
@@ -866,13 +787,12 @@ async function checkExistingSession() {
       enterApp(meta.name||session.user.email?.split('@')[0]||'Spoon', meta.color||COLORS[0]);
       return;
     }
-  } catch(e) { /* fall through */ }
-  // Fallback to localStorage even when db is available
+  } catch(e) {}
   const stored = JSON.parse(localStorage.getItem('spoon_user') || 'null');
   if (stored && stored.name) enterApp(stored.name, stored.color || COLORS[0]);
 }
 
-// \u2500\u2500 RANKINGS \u2500\u2500
+// ── RANKINGS ──
 function setRankTab(tab, btn) {
   currentRankTab = tab;
   document.querySelectorAll('.rank-tab').forEach(t=>t.classList.remove('active'));
@@ -883,98 +803,75 @@ function renderRankings() {
   const sorted = [...RESTAURANTS].sort((a,b) => b[currentRankTab] - a[currentRankTab]);
   const list = document.getElementById('rankList');
   list.innerHTML = sorted.map((r,i) => `
-  <div class="rank-item${activePanelId===r.id?' active-panel':''}" onclick="openPanel(${r.id})">
-    <div class="rank-num${i<3?' top':''}">#${i+1}</div>
-    <div class="rank-info">
-      <div class="rank-name">${r.name}</div>
-      <div class="rank-meta">
-        <div class="rank-spoons-mini">${spoonRow(r.spoons, 12, '#111')}</div>
-        <span class="rank-visits">${r[currentRankTab]} visits</span>
+    <div class="rank-item${activePanelId===r.id?' active-panel':''}" onclick="openPanel(${r.id})">
+      <div class="rank-num${i<3?' top':''}">#${i+1}</div>
+      <div class="rank-info">
+        <div class="rank-name">${r.name}</div>
+        <div class="rank-meta">
+          <div class="rank-spoons-mini">${spoonRow(r.spoons, 12, '#111')}</div>
+          <span class="rank-visits">${r[currentRankTab]} visits</span>
+        </div>
       </div>
-    </div>
-  </div>`).join('');
+    </div>`).join('');
 }
 
-// \u2500\u2500 SEARCH \u2500\u2500
-async function onSearchInput(val, dropdownId) {
+// ── SEARCH (Google Places AutocompleteService) ──
+function onSearchInput(val, dropdownId) {
   clearTimeout(searchDebounce);
-  const ddId = dropdownId || (document.getElementById('searchDropdownMobile') && window.innerWidth <= 700 ? 'searchDropdownMobile' : 'searchDropdown');
+  co.st ddId = dropdownId || (window.innerWidth <= 700 ? 'searchDropdownMobile' : 'searchDropdown');
   const dd = document.getElementById(ddId);
   if (!dd) return;
   if (!val.trim()) { dd.classList.remove('open'); return; }
 
-  // Show loading
-  dd.innerHTML = '<div class="search-loading">Searching Brisbane\u2026</div>';
+  dd.innerHTML = '<div class="search-loading">Searching…</div>';
   dd.classList.add('open');
-  dropdownVisible = true;
 
-  searchDebounce = setTimeout(async () => {
-    try {
-      // Check our own database first (name, category, address/suburb)
-      const q = val.toLowerCase();
-      const localMatches = RESTAURANTS.filter(r =>
-        r.name.toLowerCase().includes(q) ||
-        r.category.toLowerCase().includes(q) ||
-        r.address.toLowerCase().includes(q) ||
-        (r.reviews||[]).some(rv => (rv.mustOrder||'').toLowerCase().includes(q))
-      ).sort((a,b) => b.spoons - a.spoons); // highest-rated first
+  searchDebounce = setTimeout(() => {
+    const q = val.toLowerCase();
+    const localMatches = RESTAURANTS.filter(r =>
+      r.name.toLowerCase().includes(q) ||
+      r.category.toLowerCase().includes(q) ||
+      r.address.toLowerCase().includes(q)
+    ).sort((a,b) => b.spoons - a.spoons);
 
-      // Query Nominatim geocoding for Brisbane POIs (free, no token)
-      const nmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}+Brisbane&format=json&limit=6&countrycodes=au&addressdetails=1`;
-      const res = await fetch(mmUrl, { headers: { 'Accept-Language': 'en' } });
-      const nmData = await res.json();
-      const data = { features: nmData.map(f => ({
-        text: f.display_name.split(',')[0],
-        place_name: f.display_name,
-        center: [parseFloat(f.lon), parseFloat(f.lat)],
-        properties: { category: f.type||'' }
-      })) };
+    searchResults = [];
+    let html = '';
 
-      searchResults = [];
-      let html = '';
+    localMatches.forEach(r => {
+      searchResults.push({ type:'local', id:r.id });
+      html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
+        <span class="search-result-name search-in-spoon">🥄 ${r.name}</span>
+        <span class="search-result-addr">${r.address}</span>
+        <span class="search-result-tag">${r.category} · ${r.spoons} spoon${r.spoons>1?'s':''}</span>
+      </div>`;
+    });
 
-      // Local matches first
-      localMatches.forEach(r => {
-        searchResults.push({ type:'local', id:r.id });
-        html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
-          <span class="search-result-name search-in-spoon">\uD83E\uDD44 ${r.name}</span>
-          <span class="search-result-addr">${r.address}</span>
-          <span class="search-result-tag">${r.category} \u00B7 ${r.spoons} spoon${r.spoons>1?'s':''}</span>
-        </div>`;
+    // Google Places predictions
+    if (acService && map) {
+      const localNames = new Set(localMatches.map(r => r.name.toLowerCase()));
+      acService.getPlacePredictions({
+        input: val,
+        types: ['establishment'],
+        locationBias: { center: map.getCenter(), radius: 5000 },
+      }, (predictions, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+          predictions.filter(p => !localNames.has(p.structured_formatting?.main_text?.toLowerCase())).slice(0,5).forEach(p => {
+            const name = p.structured_formatting?.main_text || p.description;
+            const addr = p.structured_formatting?.secondary_text || '';
+            searchResults.push({ type:'new', placeId>�p.place_id, name, addr });
+            html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
+              <span class="search-result-name search-new">${name}</span>
+              <span class="search-result-addr">${addr}</span>
+              <span class="search-result-tag search-new">Not on Spoon yet — be first!</span>
+            </div>`;
+          });
+        }
+        dd.innerHTML = html || '<div class="search-loading">No results found</div>';
       });
-
-      // Mapbox results (not already in local)
-      const localNames = new Set(localMatches.map(r=>r.name.toLowerCase()));
-      (data.features||[]).filter(f => !localNames.has(f.text.toLowerCase()))
-      .forEach(f => {
-        const name = f.text;
-        const addr = f.place_name.split(',').slice(1,3).join(',').trim();
-        const rawCat = f.properties?.category || '';
-        const type = rawCat ? rawCat.split(',')[0].charAt(0).toUpperCase()+rawCat.split(',')[0].slice(1) : 'Place';
-        searchResults.push({ type:'new', name, addr, lat:f.center[1], lng:f.center[0], placeType:type });
-        html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
-          <span class="search-result-name search-new">${name}</span>
-          <span class="search-result-addr">${addr}</span>
-          <span class="search-result-tag search-new">Not on Spoon yet \u2014 be first!</span>
-        </div>`;
-      });
-
+    } else {
       dd.innerHTML = html || '<div class="search-loading">No results found</div>';
-    } catch(e) {
-      // Fallback: only show local matches
-      const localMatches = RESTAURANTS.filter(r => r.name.toLowerCase().includes(val.toLowerCase()));
-      if (localMatches.length) {
-        searchResults = localMatches.map(r=>({type:'local',id:r.id}));
-        dd.innerHTML = localMatches.map((r,i)=>`
-          <div class="search-result" onclick="selectSearchResult(${i})">
-            <span class="search-result-name search-in-spoon">\uD83E\uDD44 ${r.name}</span>
-            <span class="search-result-addr">${r.address}</span>
-          </div>`).join('');
-      } else {
-        dd.innerHTML = '<div class="search-loading">No results found</div>';
-      }
     }
-  }, 350);
+  }, 300);
 }
 
 function selectSearchResult(idx) {
@@ -987,170 +884,192 @@ function selectSearchResult(idx) {
   if (_mdd) _mdd.classList.remove('open');
 
   if (r.type === 'local') {
-    const restaurant = RESTAURANTS.find(x=>x.id===r.id);
-    map.flyTo({ center: [restaurant.lng, restaurant.lat], zoom: 16 });
+    const restaurant = RESTAURANTS.find(x => x.id === r.id);
+    map.panTo({ lat: restaurant.lat, lng: restaurant.lng });
+    map.setZoom(16);
     openPanel(r.id);
   } else {
-    // New place \u2014 fly to it and open "add this spot" panel
-    map.flyTo({ center: [r.lng, r.lat], zoom: 17 });
-    openNewPlacePanel(r);
+    // Get details from Google Places and fly there
+    const svc = new google.maps.places.PlacesService(map);
+    svc.getDetails({ placeId>�r.placeId, fields: ['name','geometry','formatted_address','types'] }, (place, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && place.geometry) {
+        map.panTo(place.geometry.location);
+        map.setZoom(17);
+        openNewPlacePanel({ name: r.name, addr: r.addr, lat: place.geometry.location.lat(), lng: place.geometry.location.lng(), placeId: r.placeId });
+      }
+    });
   }
 }
 
 function hideDropdownDelayed(ddId) {
-  const _id = ddId || 'searchDropdown';
-  setTimeout(() => { const _dd = document.getElementById(_id); if(_dd) _dd.classList.remove('open'); }, 200);
+  setTimeout(() => {
+    const id = ddId || 'searchDropdown';
+    document.getElementById(id)?.classList.remove('open');
+    document.getElementById('searchDropdownMobile')?.classList.remove('open');
+  }, 200);
 }
-
 function searchKeydown(e, ddId) {
-  const _dd2 = document.getElementById(ddId||'searchDropdown');
-  if (e.key === 'Escape') {
-    if(_dd2) _dd2.classList.remove('open');
-    document.getElementById('searchInput').value = '';
-  }
+  if (e.key === 'Escape') hideDropdownDelayed(ddId);
 }
 
-function openNewPlacePanel(place) {
-  activePanelId = null;
-  document.getElementById('panelContent').innerHTML = renderNewPlacePanel(place);
+// ── CATEGORY BAR ──
+let selectedCategory = 'all';
+let gPlacesMarkers = [];
+let categoryDebounce = null;
+
+function renderCategoryBar() {
+  const bar = document.getElementById('categoryBar');
+  bar.innerHTML = CATEGORIES.map(c =>
+    `<button class="cat-chip${c.id===selectedCategory?' active':''}" data-id="${c.id}" onclick="selectCategory('${c.id}')">${c.label}</button>`
+  ).join('');
+}
+
+function selectCategory(id) {
+  selectedCategory = id;
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.toggle('active', c.dataset.id === id));
+  loadPlacesByCategory();
+}
+
+function clearGPlacesMarkers() {
+  gPlacesMarkers.forEach(m => { m.map = null; });
+  gPlacesMarkers = [];
+}
+
+function loadPlacesByCategory() {
+  if (!map || !placesService) return;
+  clearGPlacesMarkers();
+
+  const cat = CATEGORIES.find(c => c.id === selectedCategory);
+  if (!cat) return;
+
+  const request = {
+    location: map.getCenter(),
+    radius: Math.min(2000, 40075000 / Math.pow(2, map.getZoom()) * 0.8),
+    type: cat.type,
+  };
+  if (cat.keyword) request.keyword = cat.keyword;
+
+  placesService.nearbySearch(request, (results, status) => {
+    if (status !== google.maps.places.PlacesServiceStatus.OK || !results) return;
+
+    const spoonNames = new Set(RESTAURANTS.map(r => r.name.toLowerCase()));
+
+    results.slice(0, 20).forEach(place => {
+      if (spoonNames.has(place.name.toLowerCase())) return; // skip if already in Spoon DB
+      if (!place.geometry?.location) return;
+
+      const el = document.createElement('div');
+      const rating = place.rating ? ` ⭐${place.rating}` : '';
+      el.innerHTML = `<div class="marker-wrap"><div class="marker-label gplace-label">${place.name}${rating}</div></div>`;
+      el.addEventListener('click', () => openGPlacePanel(place));
+
+      const marker = new google.maps.marker.AdvancedMarkerElement({
+        map,
+        position: place.geometry.location,
+        content: el,
+        title: place.name,
+      });
+      gPlacesMarkers.push(marker);
+    });
+  });
+}
+
+// Panel for Google Places (not yet in Spoon)
+function openGPlacePanel(place) {
+  const lat = place.geometry.location.lat();
+  const lng = place.geometry.location.lng();
+  const rating = place.rating ? `⭐ ${place.rating} (${place.user_ratings_total || 0} reviews)` : 'No ratings yet';
+  document.getElementById('panelContent').innerHTML = `
+    <div class="panel-category">Not on Spoon yet</div>
+    <div class="panel-name">${place.name}</div>
+    <div class="panel-address">${place.vicinity || ''}</div>
+    <div style="margin-bottom:16px;font-size:13px;color:#888;">${rating}</div>
+    <div class="new-place-banner">
+      <strong>Be the first Spoon here!</strong>
+      This place isn't on Spoon yet. Add it and drop your review so others know what's good.
+    </div>
+    <button class="btn-submit" onclick="prefillAddPlace('${place.name.replace(/'/g,"\\'")}','${(place.vicinity||'').replace(/'/g,"\\'")}',${lat},${lng})">
+      Add to Spoon 🥄
+    </button>`;
   document.getElementById('sidePanel').classList.add('open');
 }
 
-function renderNewPlacePanel(place) {
-  return `
-    <div class="panel-category">${place.placeType || 'Place'}</div>
-    <div class="panel-name">${place.name}</div>
-    <div class="panel-address">${place.addr}</div>
+function openNewPlacePanel(r) {
+  document.getElementById('panelContent').innerHTML = `
+    <div class="panel-category">Not on Spoon yet</div>
+    <div class="panel-name">${r.name}</div>
+    <div class="panel-address">${r.addr}</div>
     <div class="new-place-banner">
-      <strong>Not on Spoon yet!</strong>
-      Be the first Spoon to rate this place and put it on the map.
+      <strong>Be the first Spoon here!</strong>
+      Add it and drop your review so others know what's good.
     </div>
-    <div class="rate-form" id="newPlaceForm">
-      <div>
-        <label class="form-label">Your take</label>
-        <textarea class="form-textarea" id="npReview" placeholder="What made it worth the visit?"></textarea>
-      </div>
-      <div>
-        <label class="form-label">Spoon rating</label>
-        <div class="       <div class="spoon-picker-row" id="npSpoonRow">
-          ${[1,2,3,4,5].map(i=>`<button class="spoon-pick-btn" onclick="pickNpSpoons(${i})">${spoonSVG('#111',26,false)}</button>`).join('')}
-          <span class="spoon-rating-desc" id="npSpoonDesc">tap to rate</span>
-        </div>
-      </div>
-      <div>
-        <label class="form-label">Worth the wait?</label>
-        <div class="chips">${['Zero queue','Moved fast','Painful but worth it','Never again'].map(t=>`<div class="chip" onclick="toggleChip(this,'npWait')">${t}</div>`).join('')}</div>
-      </div>
-      <div>
-        <label class="form-label">Wallet check</label>
-        <div class="chips">${['Steal \uD83E\uDD11','Fair','Felt it','Ouch \uD83D\uDCB8'].map(t=>`<div class="chip" onclick="toggleChip(this,'npWallet')">${t}</div>`).join('')}</div>
-      </div>
-      <div>
-        <label class="form-label">The vibe</label>
-        <div class="chips">${['Cosy','Buzzy','Fancy','Hidden gem','Romantic','Lively'].map(t=>`<div class="chip" onclick="toggleChip(this,'npVibe')">${t}</div>`).join('')}</div>
-      </div>
-      <div>
-        <label class="form-label">Must order</label>
-        <input class="form-input" id="npMust" placeholder="The thing everyone has to get\u2026"/>
-      </div>
-      <button class="btn-submit" onclick="submitNewPlace('${place.name.replace(/'/g,"\\'")}', ${place.lat}, ${place.lng})">Drop this spot \uD83E\uDD44</button>
-    </div>`;
+    <button class="btn-submit" onclick="prefillAddPlace('${r.name.replace(/'/g,"\\'")}','${r.addr.replace(/'/g,"\\'")}',${r.lat},${r.lng})">
+      Add to Spoon 🥄
+    </button>`;
+  document.getElementById('sidePanel').classList.add('open');
 }
 
-let npSelectedSpoons = 0;
-function pickNpSpoons(n) {
-  npSelectedSpoons = n;
-  document.querySelectorAll('#npSpoonRow .spoon-pick-btn').forEach((b,i)=>b.classList.toggle('lit',i<n));
-  document.getElementById('npSpoonDesc').textContent = SPOON_DESCS[n];
-}
-
-function submitNewPlace(name, lat, lng) {
-  const newId = Date.now(); // unique id
-  const text = document.getElementById('npReview')?.value.trim() || '';
-  const must = document.getElementById('npMust')?.value.trim() || '';
-  const spoons = npSelectedSpoons || 3;
-  const waitChip = document.querySelector('#newPlaceForm .chips:nth-child(1) .chip.selected');
-  const walletChip = document.querySelector('#newPlaceForm .chips:nth-child(2) .chip.selected');
-  const vibeChips = [...(document.querySelectorAll('#newPlaceForm .chips:nth-child(3) .chip.selected')||[])].map(c=>c.textContent);
-  const tags = [waitChip?.textContent, walletChip?.textContent, ...vibeChips].filter(Boolean);
-
-  const newRestaurant = {
-    id: newId,
-    name,
-    category: 'New Spot',
-    address: '',
-    lat, lng,
-    spoons,
-    totalRatings: 1,
-    daily: 1, weekly: 1, monthly: 1,
-    reviews: currentUser ? [{
-      author: currentUser.name,
-      spoons,
-      text: text || 'First Spoon here!',
-      tags,
-      mustOrder: must || undefined,
-      date: 'Just now'
-    }] : [],
-    chats: []
-  };
-  RESTAURANTS.push(newRestaurant);
-  addMarker(newRestaurant);
-  renderRankings();
-  npSelectedSpoons = 0;
+function prefillAddPlace(name, addr, lat, lng) {
   closePanel();
-  toast(`\uD83E\uDD44 "${name}" is on Spoon now!`);
-  setTimeout(() => openPanel(newId), 300);
+  openAddPlaceModal();
+  setTimeout(() => {
+    const nameEl = document.getElementById('apName');
+    const addrEl = document.getElementById('apAddress');
+    if (nameEl) nameEl.value = name;
+    if (addrEl) addrEl.value = addr;
+    // Store lat/lng for geocoding skip
+    window._prefillLat = lat;
+    window._prefillLng = lng;
+  }, 100);
 }
 
-function toggleChip(el, group) {
-  if (group==='npVibe' || group==='reviewVibe' || group==='panelVibe') { el.classList.toggle('selected'); return; }
-  el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');
-}
-
-// \u2500\u2500 MAP \u2500\u2500
-let map, mapMarkers = {};
+// ── MAP ──
+let map, placesService, mapMarkers = {};
 
 function initMap() {
-  // Init Supabase client (graceful fallback if key/network fails)
+  // Init Supabase
   if (typeof supabase !== 'undefined') {
-    try {
-      db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    } catch(e) {
-      db = null;
-    }
+    try { db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) { db = null; }
   }
-  // Check session (Supabase or localStorage)
   checkExistingSession();
+  renderRankings();
+  renderCategoryBar();
+  initPanelState();
 
-  map = new maplibregl.Map({
-    container: 'map',
-    style: 'https://tiles.openfreemap.org/styles/positron',
-    center: [153.022, -27.468],
-    zoom: 13
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: { lat: -27.468, lng: 153.022 },
+    zoom: 14,
+    mapId: 'DEMO_MAP_ID',
+    disableDefaultUI: false,
+    zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
+    streetViewControl: false,
+    fullscreenControl: false,
+    mapTypeControl: false,
+    clickableIcons: false,
   });
-  map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
-  map.on('load', () => {
-    RESTAURANTS.forEach(r => addMarker(r));
+
+  placesService = new google.maps.places.PlacesService(map);
+  acService = new google.maps.places.AutocompleteService();
+
+  // Add Spoon restaurants as markers
+  RESTAURANTS.forEach(r => addMarker(r));
+
+  // Load places when map finishes moving
+  let idleTimeout = null;
+  map.addListener('idle', () => {
+    clearTimeout(idleTimeout);
+    idleTimeout = setTimeout(loadPlacesByCategory, 600);
   });
 }
 
-function getActiveHere(id) {
-  const mock = MOCK_ACTIVE[id]||[];
-  if (currentUser && currentUser.checkedInAt===id) return [...mock,{name:currentUser.name,color:currentUser.color}];
-  return mock;
-}
-
-function makeMarkerHTML(r, panelActive) {
+function makeMarkerHTML(r, isActive) {
   const active = getActiveHere(r.id);
-  const countBadge = active.length
-    ? `<span class="active-count-badge">${active.length}\uD83E\uDD44</span>`
-    : '';
+  const countBadge = active.length ? `<span class="active-count-badge">${active.length}🥄</span>` : '';
   const avatarsHtml = active.length
     ? '<div class="marker-avatars">'+active.map(u=>`<div class="avatar-dot" style="background:${u.color}">${u.name[0].toUpperCase()}</div>`).join('')+'</div>'
     : '';
   return `<div class="marker-wrap">
-    <div class="marker-label${panelActive?' active':''}"> ${r.name}${countBadge}</div>
+    <div class="marker-label${isActive?' active':''}"> ${r.name}${countBadge}</div>
     <div class="marker-spoons-row">${spoonRow(r.spoons,18)}</div>
     ${avatarsHtml}
   </div>`;
@@ -1160,32 +1079,39 @@ function addMarker(r) {
   const el = document.createElement('div');
   el.innerHTML = makeMarkerHTML(r, false);
   el.querySelector('.marker-wrap').addEventListener('click', () => openPanel(r.id));
-  const marker = new maplibregl.Marker({ element: el, anchor: 'top-left' })
-    .setLngLat([r.lng, r.lat])
-    .addTo(map);
+  const marker = new google.maps.marker.AdvancedMarkerElement({
+    map,
+    position: { lat: r.lat, lng: r.lng },
+    content: el,
+    title: r.name,
+  });
   mapMarkers[r.id] = { marker, el };
 }
 
 function refreshMarker(id) {
-  const r = RESTAURANTS.find(x=>x.id===id);
+  const r = RESTAURANTS.find(x => x.id === id);
   if (r && mapMarkers[id]) {
-    mapMarkers[id].el.innerHTML = makeMarkerHTML(r, activePanelId===id);
+    mapMarkers[id].el.innerHTML = makeMarkerHTML(r, activePanelId === id);
     mapMarkers[id].el.querySelector('.marker-wrap').addEventListener('click', () => openPanel(r.id));
   }
 }
 
-// \u2500\u2500 SIDE PANEL \u2500\u2500
+function getActiveHere(id) {
+  const mock = MOCK_ACTIVE[id]||[];
+  if (currentUser && currentUser.checkedInAt===id) return [...mock,{name:currentUser.name,color:currentUser.color}];
+  return mock;
+}
+
+// ── SIDE PANEL ──
 function openPanel(id) {
   if (activePanelId) refreshMarker(activePanelId);
   activePanelId = id;
   refreshMarker(id);
-  renderRankings(); // update active highlight in rankings
+  renderRankings();
   document.getElementById('panelContent').innerHTML = renderPanel(id);
   document.getElementById('sidePanel').classList.add('open');
-  // Load restaurant photo asynchronously
   setTimeout(() => loadPanelPhoto(id), 100);
 }
-
 function closePanel() {
   document.getElementById('sidePanel').classList.remove('open');
   if (activePanelId) { refreshMarker(activePanelId); activePanelId = null; }
@@ -1200,16 +1126,16 @@ function renderPanel(id) {
 
   const whoHtml = active.length
     ? `<div class="whos-here"><div class="whos-here-avatars">${active.map(u=>`<div class="avatar-dot" style="background:${u.color}">${u.name[0].toUpperCase()}</div>`).join('')}</div><span>${active.length} Spoon${active.length>1?'s':''} here right now</span></div>`
-    : `<div class="whos-here"><span style="color:#ddd">No Spoons checked in yet \u2014 be first!</span></div>`;
+    : `<div class="whos-here"><span style="color:#ddd">No Spoons checked in yet — be first!</span></div>`;
 
   let spoonBtn = '';
   if (currentUser) {
-    if (checkedHere) spoonBtn = `<button class="spoon-in-btn checked-in" onclick="spoonOut()">Spoon out \u2014 leaving ${r.name}</button>`;
+    if (checkedHere) spoonBtn = `<button class="spoon-in-btn checked-in" onclick="spoonOut()">Spoon out — leaving ${r.name}</button>`;
     else if (checkedElsew) {
       const el = RESTAURANTS.find(x=>x.id===currentUser.checkedInAt);
       spoonBtn = `<button class="spoon-in-btn elsewhere">Spoon in</button>
-        <div class="elsewhere-note">You're at ${el.name}. <span onclick="spoonOut();openPanel(${id})">Spoon out first \u2192</span></div>`;
-    } else spoonBtn = `<button class="spoon-in-btn" onclick="spoonIn(${id})">Spoon in \uD83E\uDD44</button>`;
+        <div class="elsewhere-note">You're at ${el.name}. <span onclick="spoonOut();openPanel(${id})">Spoon out first →</span></div>`;
+    } else spoonBtn = `<button class="spoon-in-btn" onclick="spoonIn(${id})">Spoon in 🥄</button>`;
   }
 
   const reviewsHtml = r.reviews.map(rv=>`
@@ -1218,10 +1144,9 @@ function renderPanel(id) {
       ${rv.tags?`<div class="review-tags">${rv.tags.map(t=>`<span class="review-tag">${t}</span>`).join('')}</div>`:''}
       <div class="review-text">${rv.text}</div>
       ${rv.mustOrder?`<div class="review-must">Must order: <strong>${rv.mustOrder}</strong></div>`:''}
-      <div class="review-date">${rv.date} \u00B7 ${rv.back||''}</div>
+      <div class="review-date">${rv.date} · ${rv.back||''}</div>
     </div>`).join('');
 
-  // Review form: only show if logged in and hasn't already reviewed
   const userReview = currentUser ? r.reviews.find(rv=>rv.author===currentUser.name) : null;
   const reviewFormHtml = currentUser && !userReview ? `
     <div class="panel-review-section">
@@ -1240,15 +1165,15 @@ function renderPanel(id) {
         </div>
         <div>
           <label class="form-label">Must order</label>
-          <input class="form-input" id="panelMust_${id}" placeholder="The thing everyone has to get\u2026"/>
+          <input class="form-input" id="panelMust_${id}" placeholder="The thing everyone has to get…"/>
         </div>
         <div>
           <label class="form-label">The vibe</label>
           <div class="chips" id="panelVibeChips_${id}">${['Cosy','Buzzy','Fancy','Hidden gem','Romantic','Lively'].map(t=>`<div class="chip" onclick="toggleChip(this,'panelVibe')">${t}</div>`).join('')}</div>
         </div>
-        <button class="btn-submit" onclick="submitPanelReview(${id})">Drop your review \uD83E\uDD44</button>
+        <button class="btn-submit" onclick="submitPanelReview(${id})">Drop your review 🥄</button>
       </div>
-    </div>` : userReview ? `<div class="already-reviewed">You've reviewed this spot \u2713</div>` : '';
+    </div>` : userReview ? `<div class="already-reviewed">You've reviewed this spot ✓</div>` : '';
 
   return `
     <div class="panel-category">${r.category}</div>
@@ -1257,14 +1182,14 @@ function renderPanel(id) {
     <div class="panel-rating-row">
       <span style="display:flex;gap:2px">${spoonRow(r.spoons,21,'#111')}</span>
       <span class="rating-meta">${r.totalRatings} Spoons rated</span>
-    </div>
+    </$iv>
     <div class="panel-photo" id="panelPhoto_${r.id}" style="padding:0;overflow:hidden;position:relative;">
-      <img id="panelPhotoImg_${r.id}" src="" alt="${r.name}" 
+      <img id="panelPhotoImg_${r.id}" src="" alt="${r.name}"
         style="width:100%;height:100%;object-fit:cover;display:none;"
         onerror="this.style.display='none';document.getElementById('panelPhotoFallback_${r.id}').style.display='flex';" />
       <div id="panelPhotoFallback_${r.id}" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;color:#ccc;">
-        <span style="font-size:28px">\uD83D\uDCF8</span>
-        <span style="font-size:13px;font-family:Inter,sans-serif">Loading photo&hellip;</span>
+        <span style="font-size:28px">📸</span>
+        <span style="font-size:13px">Loading photo…</span>
       </div>
     </div>
     ${whoHtml}
@@ -1275,23 +1200,21 @@ function renderPanel(id) {
     ${reviewFormHtml}`;
 }
 
-// \u2500\u2500 SPOON IN / OUT \u2500\u2500
+// ── SPOON IN / OUT ──
 function spoonIn(id) {
   if (!currentUser) return;
   currentUser.checkedInAt = id;
   const r = RESTAURANTS.find(x=>x.id===id);
-  document.getElementById('headerLoc').textContent = '\uD83D\uDCCD '+r.name;
-  // Show check-in indicator in header
+  document.getElementById('headerLoc').textContent = '📍 '+r.name;
   document.getElementById('checkinText').textContent = r.name;
   document.getElementById('checkinIndicator').classList.add('visible');
   refreshMarker(id);
   openPanel(id);
   openChatModal(id);
-  toast(`You're in at ${r.name} \uD83E\uDD44`);
+  toast(`You're in at ${r.name} 🥄`);
 }
 function spoonOut() {
   if (!currentUser||!currentUser.checkedInAt) return;
-  // Show review modal before completing checkout
   openReviewModal(currentUser.checkedInAt);
 }
 function completeSpoonOut() {
@@ -1304,7 +1227,7 @@ function completeSpoonOut() {
   if (activePanelId===prev) openPanel(prev);
 }
 
-// \u2500\u2500 REVIEW MODAL \u2500\u2500
+// ── REVIEW MODAL ──
 let reviewModalTargetId = null;
 let reviewSelectedSpoons = 0;
 
@@ -1312,7 +1235,7 @@ function openReviewModal(id) {
   reviewModalTargetId = id;
   reviewSelectedSpoons = 0;
   const r = RESTAURANTS.find(x=>x.id===id);
-  document.getElementById('reviewModalTitle').textContent = `How was ${r.name}? \uD83E\uDD44`;
+  document.getElementById('reviewModalTitle').textContent = `How was ${r.name}? 🥄`;
   document.getElementById('reviewModalForm').innerHTML = `
     <div>
       <label class="form-label">Spoon rating</label>
@@ -1321,46 +1244,23 @@ function openReviewModal(id) {
         <span class="spoon-rating-desc" id="reviewSpoonDesc">tap to rate</span>
       </div>
     </div>
-    <div>
-      <label class="form-label">Your take</label>
-      <textarea class="form-textarea" id="reviewText" placeholder="What made it worth visiting? Be real."></textarea>
-    </div>
-    <div>
-      <label class="form-label">Must order</label>
-      <input class="form-input" id="reviewMust" placeholder="The dish everyone has to get\u2026"/>
-    </div>
-    <div>
-      <label class="form-label">Worth the wait?</label>
-      <div class="chips" id="reviewWaitChips">${['Zero queue','Moved fast','Painful but worth it','Never again'].map(t=>`<div class="chip" onclick="toggleChip(this,'reviewWait')">${t}</div>`).join('')}</div>
-    </div>
-    <div>
-      <label class="form-label">Wallet check</label>
-      <div class="chips" id="reviewWalletChips">${['Steal \uD83E\uDD11','Fair','Felt it','Ouch \uD83D\uDCB8'].map(t=>`<div class="chip" onclick="toggleChip(this,'reviewWallet')">${t}</div>`).join('')}</div>
-    </div>
-    <div>
-      <label class="form-label">The vibe</label>
-      <div class="chips" id="reviewVibeChips">${['Cosy','Buzzy','Fancy','Hidden gem','Romantic','Lively'].map(t=>`<div class="chip" onclick="toggleChip(this,'reviewVibe')">${t}</div>`).join('')}</div>
-    </div>
-    <div>
-      <label class="form-label">Coming back?</label>
-      <div class="chips" id="reviewBackChips">${['Already booked','Definitely','Maybe','Never again'].map(t=>`<div class="chip" onclick="toggleChip(this,'reviewBack')">${t}</div>`).join('')}</div>
-    </div>
-    <button class="btn-submit" onclick="submitSpoonOutReview()">Drop your review \uD83E\uDD44</button>
-    <button class="review-skip" onclick="skipReview()">Skip \u2014 just check out</button>
+    <div><label class="form-label">Your take</label><textarea class="form-textarea" id="reviewText" placeholder="What made it worth visiting? Be real."></textarea></div>
+    <div><label class="form-label">Must order</label><input class="form-input" id="reviewMust" placeholder="The dish everyone has to get…"/></div>
+    <div><label class="form-label">Worth the wait?</label><div class="chips" id="reviewWaitChips">${['Zero queue','Moved fast','Painful but worth it','Never again'].map(t=>`<div class="chip" onclick="toggleChip(this,'reviewWait')">${t}</div>`).join('')}</div></div>
+    <div><label class="form-label">Wallet check</label><div class="chips" id="reviewWalletChips">${['Steal 🤑','Fair','Felt it','Ouch 💸'].map(t=>`<div class="chip" onclick="toggleChip(this,'reviewWallet')">${t}</div>`).join('')}</div></div>
+    <div><label class="form-label">The vibe</label><div class="chips" id="reviewVibeChips">${['Cosy','Buzzy','Fancy','Hidden gem','Romantic','Lively'].map(t=>`<div class="chip" onclick="toggleChip(this,'reviewVibe')">${t}</div>`).join('')}</div></div>
+    <div><label class="form-label">Coming back?</label><div class="chips" id="reviewBackChips">${['Already booked','Definitely','Maybe','Never again'].map(t=>`<div class="chip" onclick="toggleChip(this,'reviewBack')">${t}</div>`).join('')}</div></div>
+    <button class="btn-submit" onclick="submitSpoonOutReview()">Drop your review 🥄</button>
+    <button class="review-skip" onclick="skipReview()">Skip — just check out</button>
   `;
   document.getElementById('reviewOverlay').classList.add('open');
 }
-
-function closeReviewModal() {
-  document.getElementById('reviewOverlay').classList.remove('open');
-}
-
+function closeReviewModal() { document.getElementById('reviewOverlay').classList.remove('open'); }
 function pickReviewSpoons(n) {
   reviewSelectedSpoons = n;
   document.querySelectorAll('#reviewSpoonRow .spoon-pick-btn').forEach((b,i)=>b.classList.toggle('lit',i<n));
   document.getElementById('reviewSpoonDesc').textContent = SPOON_DESCS[n];
 }
-
 function submitSpoonOutReview() {
   const r = RESTAURANTS.find(x=>x.id===reviewModalTargetId);
   if (r) {
@@ -1370,38 +1270,24 @@ function submitSpoonOutReview() {
     const walletChip = document.querySelector('#reviewWalletChips .chip.selected');
     const vibeChips = [...document.querySelectorAll('#reviewVibeChips .chip.selected')].map(c=>c.textContent);
     const backChip = document.querySelector('#reviewBackChips .chip.selected');
-
     if (reviewSelectedSpoons > 0 || text) {
       const tags = [waitChip?.textContent, walletChip?.textContent, ...vibeChips].filter(Boolean);
-      r.reviews.unshift({
-        author: currentUser.name,
-        spoons: reviewSelectedSpoons || 3,
-        text: text || 'Was here!',
-        tags,
-        mustOrder: must || undefined,
-        back: backChip?.textContent,
-        date: 'Just now'
-      });
-      // Update aggregate rating
+      r.reviews.unshift({ author: currentUser.name, spoons: reviewSelectedSpoons||3, text: text||'Was here!', tags, mustOrder: must||undefined, back: backChip?.textContent, date: 'Just now' });
       if (reviewSelectedSpoons > 0) {
         const newTotal = r.totalRatings + 1;
         r.spoons = Math.round((r.spoons * r.totalRatings + reviewSelectedSpoons) / newTotal);
         r.totalRatings = newTotal;
       }
-      r.daily++;  r.weekly++;  r.monthly++;
-      toast(`Review dropped for ${r.name} \uD83E\uDD44`);
+      r.daily++; r.weekly++; r.monthly++;
+      toast(`Review dropped for ${r.name} 🥄`);
     }
   }
   closeReviewModal();
   completeSpoonOut();
 }
+function skipReview() { closeReviewModal(); completeSpoonOut(); }
 
-function skipReview() {
-  closeReviewModal();
-  completeSpoonOut();
-}
-
-// \u2500\u2500 PANEL INLINE REVIEW \u2500\u2500
+// ── PANEL INLINE REVIEW ──
 let panelSelectedSpoons = {};
 function pickPanelSpoons(n, id) {
   panelSelectedSpoons[id] = n;
@@ -1415,24 +1301,17 @@ function submitPanelReview(id) {
   const text = document.getElementById(`panelReviewText_${id}`)?.value.trim() || 'Was here!';
   const must = document.getElementById(`panelMust_${id}`)?.value.trim();
   const vibeChips = [...(document.querySelectorAll(`#panelVibeChips_${id} .chip.selected`)||[])].map(c=>c.textContent);
-  r.reviews.unshift({
-    author: currentUser.name,
-    spoons,
-    text,
-    tags: vibeChips,
-    mustOrder: must || undefined,
-    date: 'Just now'
-  });
+  r.reviews.unshift({ author: currentUser.name, spoons, text, tags: vibeChips, mustOrder: must||undefined, date: 'Just now' });
   const newTotal = r.totalRatings + 1;
   r.spoons = Math.round((r.spoons * r.totalRatings + spoons) / newTotal);
   r.totalRatings = newTotal;
   delete panelSelectedSpoons[id];
   refreshMarker(id);
   openPanel(id);
-  toast('Review dropped! \uD83E\uDD44');
+  toast('Review dropped! 🥄');
 }
 
-// \u2500\u2500 CHAT MODAL \u2500\u2500
+// ── CHAT MODAL ──
 function openChatModal(id) {
   const r = RESTAURANTS.find(x=>x.id===id);
   const checkedHere = currentUser && currentUser.checkedInAt===id;
@@ -1444,10 +1323,10 @@ function openChatModal(id) {
     body.innerHTML = `
       <div class="chat-messages" id="chatMessages">
         ${r.chats.map(m=>`<div class="msg-wrap"><div class="msg-author-row"><div class="msg-author-dot" style="background:${m.color}">${m.author[0]}</div><span class="msg-author">${m.author}</span></div><div class="msg-bubble">${m.text}</div><span class="msg-time">${m.time}</span></div>`).join('')}
-        <div class="msg-system">You Spooned in \uD83E\uDD44 Ask away!</div>
+        <div class="msg-system">You Spooned in 🥄 Ask away!</div>
       </div>
       <div class="chat-input-row">
-        <input class="chat-input" id="chatInput" placeholder="Ask the Spoons anything\u2026" onkeydown="if(event.key==='Enter')sendMsg()"/>
+        <input class="chat-input" id="chatInput" placeholder="Ask the Spoons anything…" onkeydown="if(event.key==='Enter')sendMsg()"/>
         <button class="chat-send" onclick="sendMsg()">Send</button>
       </div>`;
     document.getElementById('chatMessages').scrollTop = 99999;
@@ -1457,8 +1336,8 @@ function openChatModal(id) {
       <p>Spoon in to join the chat</p>
       <small>You need to be at <strong>${r.name}</strong><br>to chat with the Spoons here.</small><br>
       ${currentUser?(currentUser.checkedInAt
-        ?`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="spoonOut();spoonIn(${id})">Switch here \uD83E\uDD44</button>`
-        :`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="closeChatModal();spoonIn(${id})">Spoon in \uD83E\uDD44</button>`):''}
+        ?`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="spoonOut();spoonIn(${id})">Switch here 🥄</button>`
+        :`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="closeChatModal();spoonIn(${id})">Spoon in 🥄</button>`):''}
     </div>`;
   }
   document.getElementById('chatOverlay').classList.add('open');
@@ -1474,29 +1353,26 @@ function sendMsg() {
   inp.value=''; el.scrollTop=99999;
 }
 
-// \u2500\u2500 ADD PLACE MODAL \u2500\u2500
+// ── ADD PLACE MODAL ──
 let apSelectedCategory = '';
 let apSelectedSpoons = 0;
 
 function openAddPlaceModal() {
   if (!currentUser) { document.getElementById('authOverlay').classList.add('open'); return; }
   document.getElementById('addPlaceOverlay').classList.add('open');
-  apSelectedCategory = '';
-  apSelectedSpoons = 0;
+  apSelectedCategory = ''; apSelectedSpoons = 0;
+  window._prefillLat = null; window._prefillLng = null;
   renderAddPlaceForm();
 }
-function closeAddPlaceModal() {
-  document.getElementById('addPlaceOverlay').classList.remove('open');
-}
-function addPlaceBgClick(e) {
-  if (e.target === document.getElementById('addPlaceOverlay')) closeAddPlaceModal();
-}
+function closeAddPlaceModal() { document.getElementById('addPlaceOverlay').classList.remove('open'); }
+function addPlaceBgClick(e) { if (e.target === document.getElementById('addPlaceOverlay')) closeAddPlaceModal(); }
+
 function renderAddPlaceForm() {
-  const categories = ['Caf\u00E9','Brunch','Japanese','Korean','Italian','French','Thai','Chinese','Greek','Asian Fusion','Pizza','Bakery','Burgers','Seafood','Indian','Mexican','Bar','Bistro'];
+  const categories = ['Café','Brunch','Japanese','Korean','Italian','French','Thai','Chinese','Greek','Asian Fusion','Pizza','Bakery','Burgers','Sandwiches','Seafood','Indian','Mexican','Bar','Bistro'];
   document.getElementById('addPlaceFormContent').innerHTML = `
     <div class="rate-form">
       <div>
-        <label class="form-label">Restaurant / Caf\u00E9 name *</label>
+        <label class="form-label">Restaurant / Café name *</label>
         <input class="form-input" id="apName" placeholder="e.g. Taro's Ramen" autofocus/>
       </div>
       <div>
@@ -1504,7 +1380,7 @@ function renderAddPlaceForm() {
         <div class="chips" id="apCategoryChips" style="margin-bottom:8px;">
           ${categories.map(t=>`<div class="chip" onclick="selectApCategory(this,'${t}')">${t}</div>`).join('')}
         </div>
-        <input class="form-input" id="apCategoryCustom" placeholder="Or type a custom category\u2026" oninput="apSelectedCategory=this.value;document.querySelectorAll('#apCategoryChips .chip').forEach(c=>c.classList.remove('selected'))"/>
+        <input class="form-input" id="apCategoryCustom" placeholder="Or type a custom category…" oninput="apSelectedCategory=this.value;document.querySelectorAll('#apCategoryChips .chip').forEach(c=>c.classList.remove('selected'))"/>
       </div>
       <div>
         <label class="form-label">Address *</label>
@@ -1515,24 +1391,17 @@ function renderAddPlaceForm() {
         <label class="form-label">Your Spoon rating</label>
         <div class="spoon-picker-row" id="apSpoonRow">
           ${[1,2,3,4,5].map(i=>`<button class="spoon-pick-btn" onclick="pickApSpoons(${i})">${spoonSVG('#111',26,false)}</button>`).join('')}
-          <span class="spoon-rating-desc" id="apSpoonDesc">tap to rate</span>
+          <span class="spoon-rating-desc" id="apSpoo.Desc">tap to rate</span>
         </div>
       </div>
-      <div>
-        <label class="form-label">Your take (optional)</label>
-        <textarea class="form-textarea" id="apReview" placeholder="What made it worth visiting?"></textarea>
-      </div>
-      <div>
-        <label class="form-label">Must order (optional)</label>
-        <input class="form-input" id="apMust" placeholder="The dish everyone has to try\u2026"/>
-      </div>
-      <button class="btn-submit" id="apSubmitBtn" onclick="submitAddPlace()">Add to Spoon &#129348;</button>
+      <div><label class="form-label">Your take (optional)</label><textarea class="form-textarea" id="apReview" placeholder="What made it worth visiting?"></textarea></div>
+      <div><label class="form-label">Must order (optional)</label><input class="form-input" id="apMust" placeholder="The dish everyone has to try…"/></div>
+      <button class="btn-submit" id="apSubmitBtn" onclick="submitAddPlace()">Add to Spoon 🥄</button>
     </div>`;
 }
 function selectApCategory(el, cat) {
   document.querySelectorAll('#apCategoryChips .chip').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');
-  apSelectedCategory = cat;
+  el.classList.add('selected'); apSelectedCategory = cat;
   document.getElementById('apCategoryCustom').value = '';
 }
 function pickApSpoons(n) {
@@ -1548,135 +1417,96 @@ async function submitAddPlace() {
   const customCat = (document.getElementById('apCategoryCustom')?.value||'').trim();
   const category = customCat || apSelectedCategory || 'Restaurant';
   const spoons  = apSelectedSpoons || 3;
-
-  if (!name)    { toast('Please enter the restaurant name &#128071;'); return; }
-  if (!address) { toast('Please enter the address &#128071;'); return; }
+  if (!name)    { toast('Please enter the restaurant name 👇'); return; }
+  if (!address) { toast('Please enter the address 👇'); return; }
 
   const btn = document.getElementById('apSubmitBtn');
-  btn.textContent = 'Pinning on map\u2026'; btn.disabled = true;
+  btn.textContent = 'Pinning on map…'; btn.disabled = true;
 
-  // Geocode via Nominatim
-  let lat = -27.468, lng = 153.022;
-  try {
-    const nmUrl = 'https://nominatim.openstreetmap.org/search?q='
-      + encodeURIComponent(name + ' ' + address + ' Brisbane')
-      + '&format=json&limit=1&countrycodes=au';
-    const res  = await fetch(nmUrl, { headers:{ 'Accept-Language':'en' } });
-    const data = await res.json();
-    if (data.length) { lat = parseFloat(data[0].lat); lng = parseFloat(data[0].lon); }
-  } catch(e) {}
+  // Use prefilled coords if available, else geocode via Google
+  let lat = window._prefillLat || -27.468;
+  let lng = window._prefillLng || 153.022;
+
+  if (!window._prefillLat && map) {
+    await new Promise(resolve => {
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ address: name + ' ' + address }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          lat = results[0].geometry.location.lat();
+          lng = results[0].geometry.location.lng();
+        }
+        resolve();
+      });
+    });
+  }
 
   const newId = Date.now();
   const newR = {
     id: newId, name, category,
-    address: address.includes('Brisbane') ? address : address + ', Brisbane',
+    address: address,
     lat, lng, spoons,
     totalRatings: 1, daily:1, weekly:1, monthly:1,
-    reviews: currentUser ? [{
-      author: currentUser.name, spoons,
-      text: review || 'First Spoon here!',
-      tags: [], mustOrder: must || undefined, date: 'Just now'
-    }] : [],
+    reviews: currentUser ? [{ author: currentUser.name, spoons, text: review || 'First Spoon here!', tags: [], mustOrder: must||undefined, date: 'Just now' }] : [],
     chats: []
   };
   RESTAURANTS.push(newR);
   addMarker(newR);
   renderRankings();
-  apSelectedSpoons = 0;
-  apSelectedCategory = '';
+  apSelectedSpoons = 0; apSelectedCategory = '';
+  window._prefillLat = null; window._prefillLng = null;
   closeAddPlaceModal();
-  map.flyTo({ center:[lng, lat], zoom:16 });
-  toast('"' + name + '" is on Spoon now! &#129348;');
+  map.panTo({ lat, lng }); map.setZoom(16);
+  toast(`"${name}" is on Spoon now! 🥄`);
   setTimeout(() => openPanel(newId), 350);
 }
 
-// \u2500\u2500 TOAST \u2500\u2500
+// ── MISC ──
+function toggleChip(el, group) {
+  if (group==='npVibe' || group==='reviewVibe' || group==='panelVibe') { el.classList.toggle('selected'); return; }
+  el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+}
 function toast(msg) {
-  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  const t=document.createElement('div'); t.className='toast'; t.innerHTML=msg;
   document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
 }
 
-// \u2500\u2500 INIT \u2500\u2500
-// Immediately hide auth overlay if localStorage session exists (prevents flash)
+// ── INIT ──
 (function() {
   try {
     const stored = JSON.parse(localStorage.getItem('spoon_user') || 'null');
-    if (stored && stored.name) {
-      document.getElementById('authOverlay').classList.remove('open');
-    }
+    if (stored && stored.name) document.getElementById('authOverlay').classList.remove('open');
   } catch(e) {}
 })();
-initMap();
-renderRankings();
-initPanelState();
 
-// Photo loading for restaurant panels
-// Category -> Unsplash keyword mapping
+// ── PHOTO LOADING ──
 const CATEGORY_PHOTO_TAGS = {
-  'japanese':'ramen,japanese,noodles',
-  'korean':'korean,bibimbap,koreanbarbecue',
-  'chinese':'chinese,dimsum,dumplings',
-  'thai':'thai,thaicurry,noodle',
-  'italian':'italian,pasta,pizza',
-  'french':'french,bistro,crepe',
-  'greek':'greek,souvlaki,mezze',
-  'mexican':'mexican,tacos,burrito',
-  'indian':'indian,curry,tandoor',
-  'brunch':'brunch,eggs,avocado',
-  'bakery':'bakery,croissant,pastry',
-  'caf\u00E9':'coffee,cafe,latte',
-  'cafe':'coffee,cafe,latte',
-  'asian fusion':'asian,fusion,food',
-  'pizza':'pizza,woodfired,dough',
-  'burgers':'burger,brioche,patty',
-  'seafood':'seafood,fish,prawns',
-  'bar':'cocktail,bar,drinks',
+  'japanese':'ramen,japanese,noodles','gorean':'korean,bibimbap','chinese':'chinese,dimsum',
+  'thai':'thai,thaicurry','italian':'italian,pasta,pizza','french':'french,bistro',
+  'greek':'greek,souvlaki','mexican':'mexican,tacos','indian':'indian,curry',
+  'brunch':'brunch,eggs,avocado','bakery':'bakery,croissant,pastry',
+  'café':'coffee,cafe,latte','cafe':'coffee,cafe,latte','asian fusion':'asian,fusion,food',
+  'pizza':'pizza,woodfired','burgers':'burger,brioche','seafood':'seafood,fish',
+  'bar':'cocktail,bar,drinks','sandwiches':'sandwich,deli',
 };
-
 async function loadPanelPhoto(restaurantId) {
   const r = RESTAURANTS.find(x=>x.id===restaurantId);
   if (!r) return;
-  const img      = document.getElementById('panelPhotoImg_' + restaurantId);
+  const img = document.getElementById('panelPhotoImg_' + restaurantId);
   const fallback = document.getElementById('panelPhotoFallback_' + restaurantId);
   if (!img) return;
-
-  // Use cached photo URL
-  if (r.photoUrl) {
-    img.src = r.photoUrl;
-    img.style.display = 'block';
-    if (fallback) fallback.style.display = 'none';
-    return;
-  }
-
-  // 1. Try Wikipedia API for a venue-specific photo
-  try {
-    const wikiUrl = 'https://en.wikipedia.org/w/api.php?action=query&titles='
-      + encodeURIComponent(r.name + ' restaurant')
-      + '&prop=pageimages&format=json&pithumbsize=800&origin=*';
-    const wikiRes  = await fetch(wikiUrl);
-    const wikiData = await wikiRes.json();
-    const pages    = Object.values(wikiData.query?.pages || {});
-    const thumb    = pages[0]?.thumbnail?.source;
-    if (thumb && !thumb.includes('-1') /* skip missing-image placeholder */) {
-      r.photoUrl = thumb;
-      img.src = thumb;
-      img.style.display = 'block';
-      if (fallback) fallback.style.display = 'none';
-      return;
-    }
-  } catch(e) {}
-
-  // 2. Auto photo: Unsplash free source API with category-matched keywords
-  const catKey   = (r.category||'').toLowerCase();
-  const tags     = CATEGORY_PHOTO_TAGS[catKey] || 'restaurant,food,brisbane';
-  const seed     = Math.abs(r.id || r.name.split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % 1000;
-  // source.unsplash.com returns a random high-quality image matching the query
+  if (r.photoUrl) { img.src = r.photoUrl; img.style.display = 'block'; if (fallback) fallback.style.display = 'none'; return; }
+  const catKey = (r.category||'').toLowerCase();
+  const tags = CATEGORY_PHOTO_TAGS[catKey] || 'restaurant,food';
+  const seed = Math.abs(r.id || r.name.split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % 1000;
   const photoUrl = 'https://source.unsplash.com/800x320/?' + encodeURIComponent(tags) + '&sig=' + seed;
   r.photoUrl = photoUrl;
-  img.src    = photoUrl;
-  img.style.display = 'block';
+  img.src = photoUrl; img.style.display = 'block';
   if (fallback) fallback.style.display = 'none';
 }
+
 </script>
+<!-- Google Maps API — replace YOUR_GOOGLE_MAPS_API_KEY below -->
+<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDtc23g0CIDZOlah1ma8mk9pJgVDxVTRtw&libraries=places,marker&callback=initMap"></script>
 </body>
 </html>
