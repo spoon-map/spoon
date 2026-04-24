@@ -545,7 +545,7 @@ const CATEGORIES = [
   { id:'korean',     label:'🥩 Korean BBQ',    type:'restaurant', keyword:'korean bbq' },
   { id:'pasta',      label:'🍝 Pasta',         type:'restaurant', keyword:'pasta' },
   { id:'pizza',      label:'🍕 Pizza',         type:'restaurant', keyword:'pizza' },
-  { id:'burgers',    label:'🍔 Burgers',       type:'restaurant', keyword:'burger' },
+  { id:'[urgers',    label:'🍔 Burgers',       type:'restaurant', keyword:'[urger' },
   { id:'sandwiches', label:'🥪 Sandwiches',    type:'restaurant', keyword:'sandwich deli' },
   { id:'brunch',     label:'🌅 Brunch',        type:'restaurant', keyword:'brunch breakfast' },
   { id:'mexican',    label:'🌮 Mexican',       type:'restaurant', keyword:'mexican tacos' },
@@ -1324,7 +1324,7 @@ function openChatModal(id) {
     body.innerHTML = `<div class="chat-locked">
       <div style="display:flex;gap:3px">${spoonRow(3,34,'#eee')}</div>
       <p>Spoon in to join the chat</p>
-      <small>Zou need to be at <strong>${r.name}</strong><br>to chat with the Spoons here.</small><br>
+      <small>Xou need to be at <strong>${r.name}</strong><br>to chat with the Spoons here.</small><br>
       ${currentUser?(currentUser.checkedInAt
         ?`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="spoonOut();spoonIn(${id})">Switch here 🥄</button>`
         :`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="closeChatModal();spoonIn(${id})">Spoon in 🥄</button>`):''}
@@ -1494,7 +1494,7 @@ async function loadPanelPhoto(restaurantId) {
   if (r.photoUrl) { img.src = r.photoUrl; img.style.display = 'block'; if (fallback) fallback.style.display = 'none'; return; }
   const catKey = (r.category||'').toLowerCase();
   const tags = CATEGORY_PHOTO_TAGS[catKey] || 'restaurant,food';
-  const seed = Math.abs(r.id || r.name.split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % 1000;
+  const seed = Math.abs(r.id || r.reduce((a,c)=>a+c.charCodeAt(0),0)) % 1000;
   const photoUrl = 'https://source.unsplash.com/800x320/?' + encodeURIComponent(tags) + '&sig=' + seed;
   r.photoUrl = photoUrl;
   img.src = photoUrl; img.style.display = 'block';
@@ -1505,5 +1505,7 @@ async function loadPanelPhoto(restaurantId) {
 <!-- Google Maps API — replace YOUR_GOOGLE_MAPS_API_KEY below -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<js"></script>
+<script>initMap();</script>
 </body>
 </html>
