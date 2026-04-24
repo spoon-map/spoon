@@ -855,7 +855,7 @@ function onSearchInput(val, dropdownId) {
           predictions.filter(p => !localNames.has(p.structured_formatting?.main_text?.toLowerCase())).slice(0,5).forEach(p => {
             const name = p.structured_formatting?.main_text || p.description;
             const addr = p.structured_formatting?.secondary_text || '';
-            searchResults.push({ type:'new', placeId> p.place_id, name, addr });
+            searchResults.push({ type:'new', placeId: p.place_id, name, addr });
             html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
               <span class="search-result-name search-new">${name}</span>
               <span class="search-result-addr">${addr}</span>
@@ -956,7 +956,7 @@ function loadPlacesByCategory() {
       if (!place.geometry?.location) return;
 
       const el = document.createElement('div');
-      const rating = place.rating ? `⭐ ${place.rating}` : '';
+      const rating = place.rating ? ` ⭐${place.rating}` : '';
       el.innerHTML = `<div class="marker-wrap"><div class="marker-label gplace-label">${place.name}${rating}</div></div>`;
       el.addEventListener('click', () => openGPlacePanel(place));
 
@@ -1095,7 +1095,7 @@ function refreshMarker(id) {
 
 function getActiveHere(id) {
   const mock = MOCK_ACTIVE[id]||[];
-  if (currentUser && currentUser.checkedInAt===id) return [...mock'{name:currentUser.name,color:currentUser.color}];
+  if (currentUser && currentUser.checkedInAt===id) return [...mock,{name:currentUser.name,color:currentUser.color}];
   return mock;
 }
 
