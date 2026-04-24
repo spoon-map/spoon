@@ -1032,6 +1032,7 @@ function initMap() {
   map = new google.maps.Map(document.getElementById('map'), {
     center: { lat: -27.468, lng: 153.022 },
     zoom: 14,
+    mapId: 'DEMO_MAP_ID',
     disableDefaultUI: false,
     zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
     streetViewControl: false,
@@ -1071,7 +1072,7 @@ function addMarker(r) {
   const el = document.createElement('div');
   el.innerHTML = makeMarkerHTML(r, false);
   el.querySelector('.marker-wrap').addEventListener('click', () => openPanel(r.id));
-  el.style.cssText+=";position:absolute;transform:translate(-50%,-100%)"; const marker = new google.maps.Marker({ map, position: { lat: r.lat, lng: r.lng }, title: r.name });
+  const marker = new google.maps.marker.AdvancedMarkerElement({ map, position: { lat: r.lat, lng: r.lng }, content: el, title: r.name });
   mapMarkers[r.id] = { marker, el };
 }
 
@@ -1494,6 +1495,6 @@ async function loadPanelPhoto(restaurantId) {
 
 </script>
 <!-- Google Maps API — replace YOUR_GOOGLE_MAPS_API_KEY below -->
-<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCBFqwfXtuJl1FAhHkelyZ-UV0iurUufIo&libraries=places&callback=initMap"></script>
+<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCBFqwfXtuJl1FAhHkelyZ-UV0iurUufIo&libraries=places,marker&loading=async&callback=initMap"></script>
 </body>
 </html>
