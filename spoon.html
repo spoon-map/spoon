@@ -651,7 +651,7 @@ let activePanelId = null;
 let searchDebounce = null;
 let searchResults = [];
 let dropdownVisible = false;
-let acService = null; // Google Places AutocompleteService
+
 
 // ── AUTH ──
 function buildColorGrid() {
@@ -824,17 +824,14 @@ function onSearchInput(val, dropdownId) {
   dd.innerHTML = '<div class="search-loading">Searching…</div>';
   dd.classList.add('open');
 
-  searchDebounce = setTimeout(() => {
+  searchDebounce = setTimeout(async () => {
     const q = val.toLowerCase();
     const localMatches = RESTAURANTS.filter(r =>
-      r.name.toLowerCase().includes(q) ||
-      r.category.toLowerCase().includes(q) ||
-      r.address.toLowerCase().includes(q)
+      r.name.toLowerCase().includes(q) || r.category.toLowerCase().includes(q) || r.address.toLowerCase().includes(q)
     ).sort((a,b) => b.spoons - a.spoons);
 
     searchResults = [];
     let html = '';
-
     localMatches.forEach(r => {
       searchResults.push({ type:'local', id:r.id });
       html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
@@ -844,35 +841,42 @@ function onSearchInput(val, dropdownId) {
       </div>`;
     });
 
-    // Google Places predictions
-    if (acService && map) {
-      const localNames = new Set(localMatches.map(r => r.name.toLowerCase()));
-      acService.getPlacePredictions({
-        input: val,
-        types: ['establishment'],
-        locationBias: { center: map.getCenter(), radius: 5000 },
-      }, (predictions, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-          predictions.filter(p => !localNames.has(p.structured_formatting?.main_text?.toLowerCase())).slice(0,5).forEach(p => {
-            const name = p.structured_formatting?.main_text || p.description;
-            const addr = p.structured_formatting?.secondary_text || '';
-            searchResults.push({ type:'new', placeId: p.place_id, name, addr });
-            html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
-              <span class="search-result-name search-new">${name}</span>
-              <span class="search-result-addr">${addr}</span>
-              <span class="search-result-tag search-new">Not on Spoon yet — be first!</span>
-            </div>`;
-          });
-        }
-        dd.innerHTML = html || '<div class="search-loading">No results found</div>';
+    try {
+      const center = map ? map.getCenter() : { lat: -27.468, lng: 153.022 };
+      const resp = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': GMAPS_KEY,
+          'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text,suggestions.placePrediction.structuredFormat'
+        },
+        body: JSON.stringify({
+          input: val,
+          locationBias: { circle: { center: { latitude: center.lat, longitude: center.lng }, radius: 5000 } }
+        })
       });
-    } else {
-      dd.innerHTML = html || '<div class="search-loading">No results found</div>';
-    }
+      const data = await resp.json();
+      const localNames = new Set(localMatches.map(r => r.name.toLowerCase()));
+      (data.suggestions || []).filter(s => s.placePrediction).slice(0, 5).forEach(s => {
+        const pred = s.placePrediction;
+        const name = pred.structuredFormat?.mainText?.text || pred.text?.text || '';
+        const addr = pred.structuredFormat?.secondaryText?.text || '';
+        if (!localNames.has(name.toLowerCase())) {
+          searchResults.push({ type:'new', placeId: pred.placeId, name, addr });
+          html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
+            <span class="search-result-name search-new">${name}</span>
+            <span class="search-result-addr">${addr}</span>
+            <span class="search-result-tag search-new">Not on Spoon yet – be first!</span>
+          </div>`;
+        }
+      });
+    } catch(e) {}
+
+    dd.innerHTML = html || '<div class="search-loading">No results found</div>';
   }, 300);
 }
 
-function selectSearchResult(idx) {
+async function selectSearchResult(idx) {
   const r = searchResults[idx];
   document.getElementById('searchInput').value = '';
   const _mi = document.getElementById('searchInputMobile');
@@ -883,19 +887,19 @@ function selectSearchResult(idx) {
 
   if (r.type === 'local') {
     const restaurant = RESTAURANTS.find(x => x.id === r.id);
-    map.panTo({ lat: restaurant.lat, lng: restaurant.lng });
-    map.setZoom(16);
+    map.setView([restaurant.lat, restaurant.lng], 16);
     openPanel(r.id);
   } else {
-    // Get details from Google Places and fly there
-    const svc = new google.maps.places.PlacesService(map);
-    svc.getDetails({ placeId: r.placeId, fields: ['name','geometry','formatted_address','types'] }, (place, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && place.geometry) {
-        map.panTo(place.geometry.location);
-        map.setZoom(17);
-        openNewPlacePanel({ name: r.name, addr: r.addr, lat: place.geometry.location.lat(), lng: place.geometry.location.lng(), placeId: r.placeId });
+    try {
+      const resp = await fetch(`https://places.googleapis.com/v1/${r.placeId}`, {
+        headers: { 'X-Goog-Api-Key': GMAPS_KEY, 'X-Goog-FieldMask': 'location,displayName,formattedAddress' }
+      });
+      const place = await resp.json();
+      if (place.location) {
+        map.setView([place.location.latitude, place.location.longitude], 17);
+        openNewPlacePanel({ name: r.name, addr: r.addr, lat: place.location.latitude, lng: place.location.longitude, placeId: r.placeId });
       }
-    });
+    } catch(e) {}
   }
 }
 
@@ -929,59 +933,66 @@ function selectCategory(id) {
 }
 
 function clearGPlacesMarkers() {
-  gPlacesMarkers.forEach(m => { m.map = null; });
+  gPlacesMarkers.forEach(m => { m.remove(); });
   gPlacesMarkers = [];
 }
 
-function loadPlacesByCategory() {
-  if (!map || !placesService) return;
+async function loadPlacesByCategory() {
+  if (!map) return;
   clearGPlacesMarkers();
-
   const cat = CATEGORIES.find(c => c.id === selectedCategory);
-  if (!cat) return;
-
-  const request = {
-    location: map.getCenter(),
-    radius: Math.min(2000, 40075000 / Math.pow(2, map.getZoom()) * 0.8),
-    type: cat.type,
-  };
-  if (cat.keyword) request.keyword = cat.keyword;
-
-  placesService.nearbySearch(request, (results, status) => {
-    if (status !== google.maps.places.PlacesServiceStatus.OK || !results) return;
-
+  if (!cat || cat.id === 'all') return;
+  try {
+    const center = map.getCenter();
+    const typeMap = { cafe:'cafe', bakery:'bakery', bar:'bar', bubble:'cafe' };
+    const placeType = typeMap[cat.id] || 'restaurant';
+    const resp = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': GMAPS_KEY,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.rating,places.userRatingCount'
+      },
+      body: JSON.stringify({
+        includedTypes: [placeType],
+        maxResultCount: 20,
+        locationRestriction: { circle: { center: { latitude: center.lat, longitude: center.lng }, radius: 2000 } }
+      })
+    });
+    const data = await resp.json();
     const spoonNames = new Set(RESTAURANTS.map(r => r.name.toLowerCase()));
-
-    results.slice(0, 20).forEach(place => {
-      if (spoonNames.has(place.name.toLowerCase())) return; // skip if already in Spoon DB
-      if (!place.geometry?.location) return;
-
-      const el = document.createElement('div');
+    (data.places || []).forEach(place => {
+      const name = place.displayName?.text || '';
+      if (spoonNames.has(name.toLowerCase()) || !place.location) return;
       const rating = place.rating ? ` ⭐${place.rating}` : '';
-      el.innerHTML = `<div class="marker-wrap"><div class="marker-label gplace-label">${place.name}${rating}</div></div>`;
-      el.addEventListener('click', () => openGPlacePanel(place));
-
-      const marker = new google.maps.Marker({ map, position: place.geometry.location, title: place.name });
+      const icon = L.divIcon({
+        className: '',
+        html: `<div class="marker-wrap"><div class="marker-label gplace-label">${name}${rating}</div></div>`,
+        iconSize: null, iconAnchor: [0, 0]
+      });
+      const marker = L.marker([place.location.latitude, place.location.longitude], { icon });
+      marker.addTo(map);
+      marker.on('click', () => openGPlacePanel(place));
       gPlacesMarkers.push(marker);
     });
-  });
+  } catch(e) { console.log('Places search error:', e.message); }
 }
 
 // Panel for Google Places (not yet in Spoon)
 function openGPlacePanel(place) {
-  const lat = place.geometry.location.lat();
-  const lng = place.geometry.location.lng();
-  const rating = place.rating ? `⭐ ${place.rating} (${place.user_ratings_total || 0} reviews)` : 'No ratings yet';
+  const lat = place.location.latitude;
+  const lng = place.location.longitude;
+  const name = place.displayName?.text || '';
+  const rating = place.rating ? `⭐ ${place.rating} (${place.userRatingCount || 0} reviews)` : 'No ratings yet';
   document.getElementById('panelContent').innerHTML = `
     <div class="panel-category">Not on Spoon yet</div>
-    <div class="panel-name">${place.name}</div>
-    <div class="panel-address">${place.vicinity || ''}</div>
+    <div class="panel-name">${name}</div>
     <div style="margin-bottom:16px;font-size:13px;color:#888;">${rating}</div>
     <div class="new-place-banner">
       <strong>Be the first Spoon here!</strong>
       This place isn't on Spoon yet. Add it and drop your review so others know what's good.
     </div>
-    <button class="btn-submit" onclick="prefillAddPlace('${place.name.replace(/'/g,"\\'")}','${(place.vicinity||'').replace(/'/g,"\\'")}',${lat},${lng})">
+    <button class="btn-submit" onclick="prefillAddPlace('${name.replace(/'/g,"\\'")}','',${lat},${lng})">
       Add to Spoon 🥄
     </button>`;
   document.getElementById('sidePanel').classList.add('open');
@@ -1020,7 +1031,6 @@ function prefillAddPlace(name, addr, lat, lng) {
 let map, placesService, mapMarkers = {};
 
 function initMap() {
-  // Init Supabase
   if (typeof supabase !== 'undefined') {
     try { db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) { db = null; }
   }
@@ -1029,27 +1039,16 @@ function initMap() {
   renderCategoryBar();
   initPanelState();
 
-  map = new google.maps.Map(document.getElementById('map'), {
-    center: { lat: -27.468, lng: 153.022 },
-    zoom: 14,
-    mapId: 'DEMO_MAP_ID',
-    disableDefaultUI: false,
-    zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
-    streetViewControl: false,
-    fullscreenControl: false,
-    mapTypeControl: false,
-    clickableIcons: false,
-  });
+  map = L.map('map', { zoomControl: false }).setView([-27.468, 153.022], 14);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: ''
+  }).addTo(map);
 
-  placesService = new google.maps.places.PlacesService(map);
-  acService = new google.maps.places.AutocompleteService();
-
-  // Add Spoon restaurants as markers
   RESTAURANTS.forEach(r => addMarker(r));
 
-  // Load places when map finishes moving
   let idleTimeout = null;
-  map.addListener('idle', () => {
+  map.on('moveend', () => {
     clearTimeout(idleTimeout);
     idleTimeout = setTimeout(loadPlacesByCategory, 600);
   });
@@ -1071,16 +1070,19 @@ function makeMarkerHTML(r, isActive) {
 function addMarker(r) {
   const el = document.createElement('div');
   el.innerHTML = makeMarkerHTML(r, false);
-  el.querySelector('.marker-wrap').addEventListener('click', () => openPanel(r.id));
-  const marker = new google.maps.marker.AdvancedMarkerElement({ map, position: { lat: r.lat, lng: r.lng }, content: el, title: r.name });
-  mapMarkers[r.id] = { marker, el };
+  const icon = L.divIcon({ className: '', html: el.innerHTML, iconSize: null, iconAnchor: [0, 0] });
+  const marker = L.marker([r.lat, r.lng], { icon });
+  marker.addTo(map);
+  marker.on('click', () => openPanel(r.id));
+  mapMarkers[r.id] = { marker };
 }
 
 function refreshMarker(id) {
   const r = RESTAURANTS.find(x => x.id === id);
   if (r && mapMarkers[id]) {
-    mapMarkers[id].el.innerHTML = makeMarkerHTML(r, activePanelId === id);
-    mapMarkers[id].el.querySelector('.marker-wrap').addEventListener('click', () => openPanel(r.id));
+    const icon = L.divIcon({ className: '', html: makeMarkerHTML(r, activePanelId === id), iconSize: null, iconAnchor: [0, 0] });
+    mapMarkers[id].marker.setIcon(icon);
+    mapMarkers[id].marker.off('click').on('click', () => openPanel(r.id));
   }
 }
 
@@ -1322,7 +1324,7 @@ function openChatModal(id) {
     body.innerHTML = `<div class="chat-locked">
       <div style="display:flex;gap:3px">${spoonRow(3,34,'#eee')}</div>
       <p>Spoon in to join the chat</p>
-      <small>You need to be at <strong>${r.name}</strong><br>to chat with the Spoons here.</small><br>
+      <small>Zou need to be at <strong>${r.name}</strong><br>to chat with the Spoons here.</small><br>
       ${currentUser?(currentUser.checkedInAt
         ?`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="spoonOut();spoonIn(${id})">Switch here 🥄</button>`
         :`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="closeChatModal();spoonIn(${id})">Spoon in 🥄</button>`):''}
@@ -1416,16 +1418,22 @@ async function submitAddPlace() {
   let lng = window._prefillLng || 153.022;
 
   if (!window._prefillLat && map) {
-    await new Promise(resolve => {
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ address: name + ' ' + address }, (results, status) => {
-        if (status === 'OK' && results[0]) {
-          lat = results[0].geometry.location.lat();
-          lng = results[0].geometry.location.lng();
-        }
-        resolve();
+    try {
+      const resp = await fetch(`https://places.googleapis.com/v1/places:autocomplete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GMAPS_KEY,
+          'X-Goog-FieldMask': 'suggestions.placePrediction.placeId' },
+        body: JSON.stringify({ input: name + ' ' + address })
       });
-    });
+      const data = await resp.json();
+      const placeId = data.suggestions?.[0]?.placePrediction?.placeId;
+      if (placeId) {
+        const det = await fetch(`https://places.googleapis.com/v1/${placeId}`, {
+          headers: { 'X-Goog-Api-Key': GMAPS_KEY, 'X-Goog-FieldMask': 'location' }
+        }).then(r=>r.json());
+        if (det.location) { lat = det.location.latitude; lng = det.location.longitude; }
+      }
+    } catch(e) {}
   }
 
   const newId = Date.now();
@@ -1443,7 +1451,7 @@ async function submitAddPlace() {
   apSelectedSpoons = 0; apSelectedCategory = '';
   window._prefillLat = null; window._prefillLng = null;
   closeAddPlaceModal();
-  map.panTo({ lat, lng }); map.setZoom(16);
+  map.setView([lat, lng], 16);
   toast(`"${name}" is on Spoon now! 🥄`);
   setTimeout(() => openPanel(newId), 350);
 }
@@ -1495,6 +1503,7 @@ async function loadPanelPhoto(restaurantId) {
 
 </script>
 <!-- Google Maps API — replace YOUR_GOOGLE_MAPS_API_KEY below -->
-<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCBFqwfXtuJl1FAhHkelyZ-UV0iurUufIo&libraries=places,marker&loading=async&callback=initMap"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
 </html>
