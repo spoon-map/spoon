@@ -843,26 +843,17 @@ function onSearchInput(val, dropdownId) {
 
     try {
       const center = map ? map.getCenter() : { lat: -27.468, lng: 153.022 };
-      const resp = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GMAPS_KEY,
-          'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text,suggestions.placePrediction.structuredFormat'
-        },
-        body: JSON.stringify({
-          input: val,
-          locationBias: { circle: { center: { latitude: center.lat, longitude: center.lng }, radius: 5000 } }
-        })
-      });
+      const resp = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=5&addressdetails=1`,
+        { headers: { 'Accept-Language': 'en', 'User-Agent': 'SpoonApp/1.0' } }
+      );
       const data = await resp.json();
       const localNames = new Set(localMatches.map(r => r.name.toLowerCase()));
-      (data.suggestions || []).filter(s => s.placePrediction).slice(0, 5).forEach(s => {
-        const pred = s.placePrediction;
-        const name = pred.structuredFormat?.mainText?.text || pred.text?.text || '';
-        const addr = pred.structuredFormat?.secondaryText?.text || '';
+      (data || []).slice(0, 5).forEach(place => {
+        const name = place.name || place.display_name.split(',')[0].trim();
+        const addr = place.display_name.split(',').slice(1, 3).join(',').trim();
         if (!localNames.has(name.toLowerCase())) {
-          searchResults.push({ type:'new', placeId: pred.placeId, name, addr });
+          searchResults.push({ type:'new', name, addr, lat: parseFloat(place.lat), lng: parseFloat(place.lon) });
           html += `<div class="search-result" onclick="selectSearchResult(${searchResults.length-1})">
             <span class="search-result-name search-new">${name}</span>
             <span class="search-result-addr">${addr}</span>
@@ -870,7 +861,7 @@ function onSearchInput(val, dropdownId) {
           </div>`;
         }
       });
-    } catch(e) {}
+    } catch(e) { console.warn('Search unavailable:', e.message); }
 
     dd.innerHTML = html || '<div class="search-loading">No matches in Spoon yet</div>';
   }, 300);
@@ -890,16 +881,8 @@ async function selectSearchResult(idx) {
     map.setView([restaurant.lat, restaurant.lng], 16);
     openPanel(r.id);
   } else {
-    try {
-      const resp = await fetch(`https://places.googleapis.com/v1/${r.placeId}`, {
-        headers: { 'X-Goog-Api-Key': GMAPS_KEY, 'X-Goog-FieldMask': 'location,displayName,formattedAddress' }
-      });
-      const place = await resp.json();
-      if (place.location) {
-        map.setView([place.location.latitude, place.location.longitude], 17);
-        openNewPlacePanel({ name: r.name, addr: r.addr, lat: place.location.latitude, lng: place.location.longitude, placeId: r.placeId });
-      }
-    } catch(e) {}
+    map.setView([r.lat, r.lng], 17);
+    openNewPlacePanel({ name: r.name, addr: r.addr, lat: r.lat, lng: r.lng });
   }
 }
 
