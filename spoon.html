@@ -545,7 +545,7 @@ const CATEGORIES = [
   { id:'korean',     label:'🥩 Korean BBQ',    type:'restaurant', keyword:'korean bbq' },
   { id:'pasta',      label:'🍝 Pasta',         type:'restaurant', keyword:'pasta' },
   { id:'pizza',      label:'🍕 Pizza',         type:'restaurant', keyword:'pizza' },
-  { id:'[urgers',    label:'🍔 Burgers',       type:'restaurant', keyword:'[urger' },
+  { id:'burgers',    label:'🍔 Burgers',       type:'restaurant', keyword:'burger' },
   { id:'sandwiches', label:'🥪 Sandwiches',    type:'restaurant', keyword:'sandwich deli' },
   { id:'brunch',     label:'🌅 Brunch',        type:'restaurant', keyword:'brunch breakfast' },
   { id:'mexican',    label:'🌮 Mexican',       type:'restaurant', keyword:'mexican tacos' },
@@ -870,9 +870,9 @@ function onSearchInput(val, dropdownId) {
           </div>`;
         }
       });
-    } catch(e) {}
+    } catch(e) { console.warn('Places autocomplete unavailable:', e.message); }
 
-    dd.innerHTML = html || '<div class="search-loading">No results found</div>';
+    dd.innerHTML = html || '<div class="search-loading">No matches in Spoon yet</div>';
   }, 300);
 }
 
@@ -919,6 +919,46 @@ let selectedCategory = 'all';
 let gPlacesMarkers = [];
 let categoryDebounce = null;
 
+// Keyword lists for filtering local RESTAURANTS by category chip
+const CATEGORY_MATCH = {
+  all:         null,
+  cafe:        ['café','cafe','coffee','brunch','bakery'],
+  asian:       ['japanese','asian','chinese','thai','korean','vietnamese','ramen','sushi','indian'],
+  sushi:       ['japanese','sushi'],
+  korean:      ['korean'],
+  pasta:       ['italian','pasta'],
+  pizza:       ['italian','pizza'],
+  burgers:     ['burger','american','bbq'],
+  sandwiches:  ['sandwich','deli','sub'],
+  brunch:      ['brunch','breakfast','café','cafe'],
+  mexican:     ['mexican','taco','latin'],
+  bakery:      ['bakery','pastry','patisserie'],
+  bar:         ['bar','pub','wine','cocktail','bistro'],
+  bubble:      ['bubble','boba','taiwanese'],
+  healthy:     ['healthy','salad','bowl','vegan','vegetarian'],
+};
+
+function restaurantMatchesCategory(r, catId) {
+  if (catId === 'all') return true;
+  const keywords = CATEGORY_MATCH[catId];
+  if (!keywords) return true;
+  const cat = (r.category || '').toLowerCase();
+  return keywords.some(k => cat.includes(k));
+}
+
+function filterLocalMarkers() {
+  Object.entries(mapMarkers).forEach(([id, entry]) => {
+    const r = RESTAURANTS.find(x => x.id == id);
+    if (!r || !entry || !entry.marker) return;
+    const show = restaurantMatchesCategory(r, selectedCategory);
+    if (show) {
+      if (!map.hasLayer(entry.marker)) entry.marker.addTo(map);
+    } else {
+      if (map.hasLayer(entry.marker)) entry.marker.remove();
+    }
+  });
+}
+
 function renderCategoryBar() {
   const bar = document.getElementById('categoryBar');
   bar.innerHTML = CATEGORIES.map(c =>
@@ -929,6 +969,7 @@ function renderCategoryBar() {
 function selectCategory(id) {
   selectedCategory = id;
   document.querySelectorAll('.cat-chip').forEach(c => c.classList.toggle('active', c.dataset.id === id));
+  filterLocalMarkers();
   loadPlacesByCategory();
 }
 
@@ -1262,7 +1303,7 @@ function submitSpoonOutReview() {
     const backChip = document.querySelector('#reviewBackChips .chip.selected');
     if (reviewSelectedSpoons > 0 || text) {
       const tags = [waitChip?.textContent, walletChip?.textContent, ...vibeChips].filter(Boolean);
-      r.reviews.unshift({ author: currentUser.name, spoons: reviewSelectedSpoons||3, text: text||'Was here!', tags, mustOrder: must||undefined, back: backChip?.textContent, date: 'Just now' });
+      r.reviews.unshift({ author: currentUser.name, spoons: reviewSelectedSpoonr||3, text: text||'Was here!', tags, mustOrder: must||undefined, back: backChip?.textContent, date: 'Just now' });
       if (reviewSelectedSpoons > 0) {
         const newTotal = r.totalRatings + 1;
         r.spoons = Math.round((r.spoons * r.totalRatings + reviewSelectedSpoons) / newTotal);
@@ -1324,7 +1365,7 @@ function openChatModal(id) {
     body.innerHTML = `<div class="chat-locked">
       <div style="display:flex;gap:3px">${spoonRow(3,34,'#eee')}</div>
       <p>Spoon in to join the chat</p>
-      <small>Xou need to be at <strong>${r.name}</strong><br>to chat with the Spoons here.</small><br>
+      <small>You need to be at <strong>${r.name}</strong><br>to chat with the Spoons here.</small><br>
       ${currentUser?(currentUser.checkedInAt
         ?`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="spoonOut();spoonIn(${id})">Switch here 🥄</button>`
         :`<button class="btn-submit" style="width:auto;padding:10px 20px;font-size:15px" onclick="closeChatModal();spoonIn(${id})">Spoon in 🥄</button>`):''}
@@ -1344,7 +1385,7 @@ function sendMsg() {
 }
 
 // ── ADD PLACE MODAL ──
-let apSelectedCategory = '';
+et apSelectedCategory = '';
 let apSelectedSpoons = 0;
 
 function openAddPlaceModal() {
@@ -1358,7 +1399,7 @@ function closeAddPlaceModal() { document.getElementById('addPlaceOverlay').class
 function addPlaceBgClick(e) { if (e.target === document.getElementById('addPlaceOverlay')) closeAddPlaceModal(); }
 
 function renderAddPlaceForm() {
-  const categories = ['Café','Brunch','Japanese','Korean','Italian','French','Thai','Chinese','Greek','Asian Fusion','Pizza','Bakery','Burgers','Sandwiches','Seafood','Indian','Mexican','Bar','Bistro'];
+  const categories = ['Café','Brunch','Japanese','Korean','Italian','French','Thai',3'Chinese','Greek','Asian Fusion','Pizza','Bakery','Burgers','Sandwiches','Seafood','Indian','Mexican','Bar','Bistro'];
   document.getElementById('addPlaceFormContent').innerHTML = `
     <div class="rate-form">
       <div>
@@ -1494,7 +1535,7 @@ async function loadPanelPhoto(restaurantId) {
   if (r.photoUrl) { img.src = r.photoUrl; img.style.display = 'block'; if (fallback) fallback.style.display = 'none'; return; }
   const catKey = (r.category||'').toLowerCase();
   const tags = CATEGORY_PHOTO_TAGS[catKey] || 'restaurant,food';
-  const seed = Math.abs(r.id || r.reduce((a,c)=>a+c.charCodeAt(0),0)) % 1000;
+  const seed = Math.abs(r.id || r.name.split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % 1000;
   const photoUrl = 'https://source.unsplash.com/800x320/?' + encodeURIComponent(tags) + '&sig=' + seed;
   r.photoUrl = photoUrl;
   img.src = photoUrl; img.style.display = 'block';
@@ -1505,7 +1546,6 @@ async function loadPanelPhoto(restaurantId) {
 <!-- Google Maps API — replace YOUR_GOOGLE_MAPS_API_KEY below -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<js"></script>
 <script>initMap();</script>
 </body>
 </html>
