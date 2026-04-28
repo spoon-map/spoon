@@ -921,7 +921,7 @@ function searchKeydown(e, ddId) {
 }
 
 // ── CATEGORY BAR ──
-let selectedCategory = 'all';
+let selectedCategories = new Set(['all']);
 let gPlacesMarkers = [];
 let categoryDebounce = null;
 
@@ -962,7 +962,7 @@ function filterLocalMarkers() {
   Object.entries(mapMarkers).forEach(([id, entry]) => {
     const r = RESTAURANTS.find(x => x.id == id);
     if (!r || !entry || !entry.marker) return;
-    const show = restaurantMatchesCategory(r, selectedCategory);
+    const show = selectedCategories.has('all') ? true : [...selectedCategories].some(catId => restaurantMatchesCategory(r, catId));
     if (show) {
       if (!map.hasLayer(entry.marker)) entry.marker.addTo(map);
     } else {
@@ -972,8 +972,18 @@ function filterLocalMarkers() {
 }
 
 function selectCategory(id) {
-  selectedCategory = id;
-  document.querySelectorAll('.cat-chip').forEach(c => c.classList.toggle('active', c.dataset.id === id));
+  if (id === 'all') {
+    selectedCategories = new Set(['all']);
+  } else {
+    selectedCategories.delete('all');
+    if (selectedCategories.has(id)) {
+      selectedCategories.delete(id);
+      if (selectedCategories.size === 0) selectedCategories = new Set(['all']);
+    } else {
+      selectedCategories.add(id);
+    }
+  }
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.toggle('active', selectedCategories.has(c.dataset.id)));
   filterLocalMarkers();
   loadPlacesByCategory();
 }
@@ -1219,7 +1229,7 @@ function renderPanel(id) {
       <span style="display:flex;gap:2px">${spoonRow(r.spoons,21,'#111')}</span>
       <span class="rating-meta">${r.totalRatings} Spoons rated</span>
     </div>
-    <div class="panel-photo" id="panelPhoto_${r.id}" style="padding:0;overflow:hidden;position:relative;">
+    <div class="panel-photo" data-placeid="${r.placeId || ''}" id="panelPhoto_${r.id}" style="padding:0;overflow:hidden;position:relative;">
       <img id="panelPhotoImg_${r.id}" src="" alt="${r.name}"
         style="width:100%;height:100%;object-fit:cover;display:none;"
         onerror="this.style.display='none';document.getElementById('panelPhotoFallback_${r.id}').style.display='flex';" />
@@ -1531,20 +1541,51 @@ const CATEGORY_PHOTO_TAGS = {
   'pizza':'pizza,woodfired','burgers':'burger,brioche','seafood':'seafood,fish',
   'bar':'cocktail,bar,drinks','sandwiches':'sandwich,deli',
 };
-async function loadPanelPhoto(restaurantId) {
-  const r = RESTAURANTS.find(x=>x.id===restaurantId);
-  if (!r) return;
-  const img = document.getElementById('panelPhotoImg_' + restaurantId);
-  const fallback = document.getElementById('panelPhotoFallback_' + restaurantId);
-  if (!img) return;
-  if (r.photoUrl) { img.src = r.photoUrl; img.style.display = 'block'; if (fallback) fallback.style.display = 'none'; return; }
-  const catKey = (r.category||'').toLowerCase();
-  const tags = CATEGORY_PHOTO_TAGS[catKey] || 'restaurant,food';
-  const seed = Math.abs(r.id || r.reduce((a,c)=>a+c.charCodeAt(0),0)) % 1000;
-  const photoUrl = 'https://source.unsplash.com/800x320/?' + encodeURIComponent(tags) + '&sig=' + seed;
-  r.photoUrl = photoUrl;
-  img.src = photoUrl; img.style.display = 'block';
-  if (fallback) fallback.style.display = 'none';
+async async function loadPanelPhoto(restaurantId) {
+  const r = RESTAURANTS.find(x => x.id === restaurantId);
+  const el = document.getElementById('panelPhoto_' + restaurantId);
+  if (!el) return;
+
+  // Try stored photo first
+  const photoUrl = r && r.photo ? r.photo : null;
+  if (photoUrl) {
+    const img = el.querySelector('img') || document.createElement('img');
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:12px;';
+    img.src = photoUrl;
+    img.onload = () => { el.innerHTML = ''; el.appendChild(img); };
+    img.onerror = () => { el.style.display = 'none'; };
+    return;
+  }
+
+  // Try Google Places photo if placeId is available
+  const placeId = (r && r.placeId) || el.dataset.placeid;
+  if (placeId && typeof GMAPS_KEY !== 'undefined') {
+    try {
+      const resp = await fetch(`https://places.googleapis.com/v1/${placeId}?fields=photos`, {
+        headers: { 'X-Goog-Api-Key': GMAPS_KEY }
+      });
+      const data = await resp.json();
+      const photoName = data.photos && data.photos[0] && data.photos[0].name;
+      if (photoName) {
+        const mediaResp = await fetch(
+          `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=400&skipHttpRedirect=true`,
+          { headers: { 'X-Goog-Api-Key': GMAPS_KEY } }
+        );
+        const mediaData = await mediaResp.json();
+        if (mediaData.photoUri) {
+          const img = document.createElement('img');
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:12px;';
+          img.src = mediaData.photoUri;
+          img.onload = () => { el.innerHTML = ''; el.appendChild(img); };
+          img.onerror = () => { el.style.display = 'none'; };
+          return;
+        }
+      }
+    } catch(e) {}
+  }
+
+  // No photo available - hide the section
+  el.style.display = 'none';
 }
 
 </script>
