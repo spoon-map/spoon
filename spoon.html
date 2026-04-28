@@ -996,12 +996,21 @@ function clearGPlacesMarkers() {
 async function loadPlacesByCategory() {
   if (!map) return;
   clearGPlacesMarkers();
-  const cat = CATEGORIES.find(c => c.id === ([...selectedCategories][0] || 'all'));
-  if (!cat || cat.id === 'all') return;
+  const activeCats0 = [...selectedCategories].filter(id => id !== 'all');
+  if (activeCats0.length === 0) return; // 'all' selected, nothing to load from Places
   try {
     const center = map.getCenter();
-    const typeMap = { cafe:'cafe', bakery:'bakery', bar:'bar', bubble:'cafe' };
-    const placeType = typeMap[cat.id] || 'restaurant';
+    const typeMap = {
+      cafe:'cafe', bakery:'bakery', bar:'bar', bubble:'cafe',
+      sushi:'japanese_restaurant', asian:'asian_restaurant',
+      korean:'korean_restaurant', pasta:'italian_restaurant',
+      pizza:'pizza_restaurant', burgers:'hamburger_restaurant',
+      sandwiches:'sandwich_shop', brunch:'breakfast_restaurant',
+      mexican:'mexican_restaurant', healthy:'restaurant'
+    };
+    // Support multi-select: collect types for all selected categories
+    const activeCats = [...selectedCategories].filter(id => id !== 'all');
+    const includedTypes = [...new Set(activeCats.map(id => typeMap[id] || 'restaurant'))];
     const resp = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
       method: 'POST',
       headers: {
@@ -1010,7 +1019,7 @@ async function loadPlacesByCategory() {
         'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.rating,places.userRatingCount'
       },
       body: JSON.stringify({
-        includedTypes: [placeType],
+        includedTypes: includedTypes,
         maxResultCount: 20,
         locationRestriction: { circle: { center: { latitude: center.lat, longitude: center.lng }, radius: 2000 } }
       })
@@ -1095,6 +1104,7 @@ function initMap() {
     db.from('restaurants').select('*').then(function(r) {
       if (!r.data || !r.data.length) return;
       r.data.forEach(function(row) {
+        if (!row.name || row.name.startsWith('__')) return;
         var exists = RESTAURANTS.find(function(x) { return String(x.id) === String(row.id); });
         if (exists) return;
         var nr = {
