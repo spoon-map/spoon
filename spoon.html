@@ -1541,50 +1541,33 @@ const CATEGORY_PHOTO_TAGS = {
   'pizza':'pizza,woodfired','burgers':'burger,brioche','seafood':'seafood,fish',
   'bar':'cocktail,bar,drinks','sandwiches':'sandwich,deli',
 };
-async async function loadPanelPhoto(restaurantId) {
+function loadPanelPhoto(restaurantId) {
   const r = RESTAURANTS.find(x => x.id === restaurantId);
   const el = document.getElementById('panelPhoto_' + restaurantId);
   if (!el) return;
-
-  // Try stored photo first
-  const photoUrl = r && r.photo ? r.photo : null;
-  if (photoUrl) {
-    const img = el.querySelector('img') || document.createElement('img');
+  var showImg = function(url) {
+    var img = el.querySelector('img') || document.createElement('img');
     img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:12px;';
-    img.src = photoUrl;
-    img.onload = () => { el.innerHTML = ''; el.appendChild(img); };
-    img.onerror = () => { el.style.display = 'none'; };
+    img.src = url;
+    img.onload = function() { el.innerHTML = ''; el.appendChild(img); };
+    img.onerror = function() { el.style.display = 'none'; };
+  };
+  var photoUrl = r && r.photo ? r.photo : null;
+  if (photoUrl) { showImg(photoUrl); return; }
+  var placeId = (r && r.placeId) || el.dataset.placeid;
+  if (placeId && typeof GMAPS_KEY !== 'undefined') {
+    fetch('https://places.googleapis.com/v1/' + placeId + '?fields=photos', { headers: { 'X-Goog-Api-Key': GMAPS_KEY } })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        var pn = data.photos && data.photos[0] && data.photos[0].name;
+        if (!pn) { el.style.display = 'none'; return; }
+        return fetch('https://places.googleapis.com/v1/' + pn + '/media?maxHeightPx=400&skipHttpRedirect=true', { headers: { 'X-Goog-Api-Key': GMAPS_KEY } })
+          .then(function(r2) { return r2.json(); })
+          .then(function(md) { if (md.photoUri) { showImg(md.photoUri); } else { el.style.display = 'none'; } });
+      })
+      .catch(function() { el.style.display = 'none'; });
     return;
   }
-
-  // Try Google Places photo if placeId is available
-  const placeId = (r && r.placeId) || el.dataset.placeid;
-  if (placeId && typeof GMAPS_KEY !== 'undefined') {
-    try {
-      const resp = await fetch(`https://places.googleapis.com/v1/${placeId}?fields=photos`, {
-        headers: { 'X-Goog-Api-Key': GMAPS_KEY }
-      });
-      const data = await resp.json();
-      const photoName = data.photos && data.photos[0] && data.photos[0].name;
-      if (photoName) {
-        const mediaResp = await fetch(
-          `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=400&skipHttpRedirect=true`,
-          { headers: { 'X-Goog-Api-Key': GMAPS_KEY } }
-        );
-        const mediaData = await mediaResp.json();
-        if (mediaData.photoUri) {
-          const img = document.createElement('img');
-          img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:12px;';
-          img.src = mediaData.photoUri;
-          img.onload = () => { el.innerHTML = ''; el.appendChild(img); };
-          img.onerror = () => { el.style.display = 'none'; };
-          return;
-        }
-      }
-    } catch(e) {}
-  }
-
-  // No photo available - hide the section
   el.style.display = 'none';
 }
 
