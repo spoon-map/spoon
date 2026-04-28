@@ -928,7 +928,7 @@ let categoryDebounce = null;
 function renderCategoryBar() {
   const bar = document.getElementById('categoryBar');
   bar.innerHTML = CATEGORIES.map(c =>
-    `<button class="cat-chip${c.id===selectedCategory?' active':''}" data-id="${c.id}" onclick="selectCategory('${c.id}')">${c.label}</button>`
+    `<button class="cat-chip${selectedCategories.has(c.id)?' active':''}" data-id="${c.id}" onclick="selectCategory('${c.id}')">${c.label}</button>`
   ).join('');
 }
 
@@ -996,7 +996,7 @@ function clearGPlacesMarkers() {
 async function loadPlacesByCategory() {
   if (!map) return;
   clearGPlacesMarkers();
-  const cat = CATEGORIES.find(c => c.id === selectedCategory);
+  const cat = CATEGORIES.find(c => c.id === ([...selectedCategories][0] || 'all'));
   if (!cat || cat.id === 'all') return;
   try {
     const center = map.getCenter();
