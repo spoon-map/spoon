@@ -556,7 +556,7 @@ const CATEGORIES = [
 ];
 
 // ── DATA ──
-const RESTAURANTS = [
+let RESTAURANTS = [
   { id:1, name:"Greca", category:"Greek", address:"Howard Smith Wharves, Brisbane City", lat:-27.4569, lng:153.0359, spoons:5, totalRatings:47, daily:12, weekly:67, monthly:245,
     reviews:[
       {author:"Mia",spoons:5,text:"The lamb shoulder is genuinely one of the best things I've eaten in Brisbane.",tags:["Worth it","Felt it","Fancy","Romantic"],mustOrder:"Lamb shoulder",back:"Already booked",date:"2 days ago"},
@@ -1080,6 +1080,7 @@ function prefillAddPlace(name, addr, lat, lng) {
     // Store lat/lng for geocoding skip
     window._prefillLat = lat;
     window._prefillLng = lng;
+    window._prefillPlaceId = placeId || null;
   }, 100);
 }
 
@@ -1089,6 +1090,31 @@ let map, placesService, mapMarkers = {};
 function initMap() {
   if (typeof supabase !== 'undefined') {
     try { db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) { db = null; }
+  // Load user-added places from Supabase
+  if (db) {
+    db.from('restaurants').select('*').then(function(r) {
+      if (!r.data || !r.data.length) return;
+      r.data.forEach(function(row) {
+        var exists = RESTAURANTS.find(function(x) { return String(x.id) === String(row.id); });
+        if (exists) return;
+        var nr = {
+          id: row.id, name: row.name,
+          category: row.category || 'Restaurant',
+          address: row.address || '',
+          lat: row.lat, lng: row.lng,
+          spoons: row.spoon_rating || 3,
+          totalRatings: row.total_ratings || 1,
+          daily:1, weekly:1, monthly:1,
+          reviews: Array.isArray(row.reviews) ? row.reviews : [],
+          mustOrder: row.must_order || undefined,
+          placeId: row.place_id || undefined
+        };
+        RESTAURANTS.push(nr);
+        addMarker(nr);
+      });
+      renderRankings();
+    });
+  }
   }
   checkExistingSession();
   renderRankings();
@@ -1501,6 +1527,24 @@ async function submitAddPlace() {
     reviews: currentUser ? [{ author: currentUser.name, spoons, text: review || 'First Spoon here!', tags: [], mustOrder: must||undefined, date: 'Just now' }] : [],
     chats: []
   };
+  // Save to Supabase
+  if (db) {
+    db.from('restaurants').insert({
+      name: newR.name,
+      category: newR.category,
+      address: newR.address,
+      lat: newR.lat,
+      lng: newR.lng,
+      spoon_rating: newR.spoons,
+      total_ratings: 1,
+      reviews: newR.reviews,
+      must_order: must || null,
+      place_id: (window._prefillPlaceId || null),
+      added_by: currentUser ? currentUser.name : null
+    }).then(function(r) {
+      if (r.error) console.warn('Supabase save failed:', r.error.message);
+    });
+  }
   RESTAURANTS.push(newR);
   addMarker(newR);
   renderRankings();
